@@ -1,23 +1,23 @@
-import { ChangeSpec } from "@codemirror/state";
-import { GraphState } from "@desmodder/graph-state";
-import { DispatchedEvent } from "globals/Calc";
-import { Calc } from "globals/window";
+import { ProgramAnalysis } from "./LanguageServer";
 import {
   rawNonFolderToAug,
   rawToAugSettings,
   rawToDsmMetadata,
 } from "./aug/rawToAug";
-import { graphSettingsToText, itemToText } from "./up/augToText";
-import Metadata from "main/metadata/interface";
-import LanguageServer, { ProgramAnalysis } from "./LanguageServer";
 import TextAST, { NodePath, Settings, Statement } from "./down/TextAST";
-import { itemAugToAST } from "./up/augToAST";
 import {
   docToString,
   exprToTextString,
   styleEntryToText,
 } from "./up/astToText";
+import { itemAugToAST } from "./up/augToAST";
+import { graphSettingsToText, itemToText } from "./up/augToText";
+import { ChangeSpec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { GraphState } from "@desmodder/graph-state";
+import { DispatchedEvent } from "globals/Calc";
+import { Calc } from "globals/window";
+import Metadata from "main/metadata/interface";
 
 export const relevantEventTypes = [
   // @settings related
@@ -34,7 +34,7 @@ export const relevantEventTypes = [
 ] as const;
 
 export type RelevantEvent = DispatchedEvent & {
-  type: typeof relevantEventTypes[number];
+  type: (typeof relevantEventTypes)[number];
 };
 
 type ToChange = "table-columns" | "latex-only" | "image-pos" | "regression";
@@ -45,7 +45,7 @@ export function eventSequenceChanges(
   analysis: ProgramAnalysis
 ): ChangeSpec[] {
   let settingsChanged: boolean = false;
-  let itemsChanged: { [key: string]: ToChange } = {};
+  const itemsChanged: Record<string, ToChange> = {};
   for (const event of events) {
     switch (event.type) {
       case "re-randomize":
@@ -157,9 +157,13 @@ function itemChange(
         );
       const ast = itemAugToAST(itemAug) as TextAST.Table | null;
       if (ast === null)
-        throw "Programming error: expect new table item to always be parseable";
+        throw new Error(
+          "Programming error: expect new table item to always be parseable"
+        );
       if (ast.columns.length < oldNode.columns.length)
-        throw "Programming error: expect no fewer new table columns than old";
+        throw new Error(
+          "Programming error: expect no fewer new table columns than old"
+        );
       return oldNode.columns.map((e, i) =>
         insertWithIndentation(
           view,
@@ -175,7 +179,9 @@ function itemChange(
         );
       const ast = itemAugToAST(itemAug) as TextAST.ExprStatement | null;
       if (ast === null)
-        throw "Programming error: expect new expr item to always be parseable";
+        throw new Error(
+          "Programming error: expect new expr item to always be parseable"
+        );
       return [
         insertWithIndentation(
           view,
@@ -191,7 +197,9 @@ function itemChange(
         );
       const ast = itemAugToAST(itemAug) as TextAST.Image | null;
       if (ast === null)
-        throw "Programming error: expect new image item to always be parseable";
+        throw new Error(
+          "Programming error: expect new image item to always be parseable"
+        );
       const newEntries = ast.style!.entries;
       const oldEntries = oldNode.style!.entries;
       return newEntries

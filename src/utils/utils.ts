@@ -1,9 +1,5 @@
-interface FuncAny {
-  (): any;
-}
-
-function _pollForValue<T>(func: () => T) {
-  return new Promise<T>((resolve) => {
+export async function pollForValue<T>(func: () => T) {
+  return await new Promise<T>((resolve) => {
     const interval = setInterval(() => {
       const val = func();
       if (val !== null && val !== undefined) {
@@ -14,13 +10,7 @@ function _pollForValue<T>(func: () => T) {
   });
 }
 
-export async function pollForValue(func: FuncAny) {
-  return await _pollForValue(func);
-}
-
-interface ClassDict {
-  [key: string]: boolean;
-}
+type ClassDict = Record<string, boolean>;
 
 export type MaybeClassDict = string | ClassDict | undefined | null;
 
@@ -54,7 +44,7 @@ export function everyNonNull<T>(arr: (T | null)[]): arr is T[] {
 
 export function jsx(
   tag: string,
-  attrs: { [key: string]: string },
+  attrs: Record<string, string>,
   ...children: (Node | string)[]
 ) {
   const element = document.createElement(tag);

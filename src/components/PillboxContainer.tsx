@@ -1,9 +1,10 @@
-import { Component, jsx } from "DCGView";
-import { If, Tooltip, For, Switch } from "./desmosComponents";
-import { jquery, keys } from "utils/depUtils";
-import Controller from "main/Controller";
-import { Calc } from "globals/window";
+import { format } from "../i18n/i18n-core";
 import "./PillboxContainer.less";
+import { If, Tooltip, For, Switch } from "./desmosComponents";
+import { Component, jsx } from "DCGView";
+import { Calc } from "globals/window";
+import Controller from "main/Controller";
+import { jquery, keys } from "utils/depUtils";
 
 export default class PillboxContainer extends Component<{
   controller: Controller;
@@ -22,7 +23,7 @@ export default class PillboxContainer extends Component<{
             {(id: string) => (
               <Tooltip
                 tooltip={() =>
-                  this.controller.pillboxButtons[id]?.tooltip ?? ""
+                  format(this.controller.pillboxButtons[id].tooltip)
                 }
                 gravity="w"
               >
@@ -37,7 +38,7 @@ export default class PillboxContainer extends Component<{
                 >
                   <i
                     class={() =>
-                      this.controller.pillboxButtons[id]?.iconClass ?? ""
+                      this.controller.pillboxButtons[id].iconClass ?? ""
                     }
                   />
                 </div>
@@ -54,7 +55,6 @@ export default class PillboxContainer extends Component<{
               style={() => ({
                 position: "absolute",
                 ...this.getPopoverPosition(),
-                "line-height": "1em",
               })}
             >
               <Switch key={() => this.controller.pillboxMenuOpen}>
@@ -90,8 +90,9 @@ export default class PillboxContainer extends Component<{
       right += 43 * index;
     }
     return {
-      top: top + "px",
-      right: right + "px",
+      top: top.toString() + "px",
+      right: right.toString() + "px",
+      bottom: 0,
     };
   }
 

@@ -1,13 +1,11 @@
 import TextAST from "../TextAST";
-import { Schema } from "./schema";
 import { DownState } from "../astToAug";
 import { evalExpr } from "../staticEval";
+import { Schema } from "./schema";
 
 export interface StyleValue {
   type: "StyleValue";
-  props: {
-    [key: string]: StyleProp;
-  };
+  props: Record<string, StyleProp>;
 }
 
 export type StyleProp = TextAST.Expression | StyleValue | undefined;
@@ -113,6 +111,7 @@ export function hydrate<T>(
               `Expected ${errPath} to evaluate to string or identifier, but got ${typeof evaluated}`
             );
         } else {
+          // eslint-disable-next-line valid-typeof
           if (typeof evaluated !== schemaType)
             pushError(
               `Expected ${errPath} to evaluate to ${schemaType}, but got ${typeof evaluated}`

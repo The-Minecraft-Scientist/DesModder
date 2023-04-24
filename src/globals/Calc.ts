@@ -1,5 +1,5 @@
-import { GraphState } from "@desmodder/graph-state";
 import { ItemModel } from "./models";
+import { GraphState } from "@desmodder/graph-state";
 import "desmos";
 
 export type DispatchedEvent =
@@ -19,7 +19,8 @@ export type DispatchedEvent =
         | "set-graph-settings"
         | "resize-exp-list"
         | "set-none-selected"
-        | "toggle-graph-settings";
+        | "toggle-graph-settings"
+        | "clear-unsaved-changes";
     }
   | {
       type:
@@ -36,9 +37,7 @@ export type DispatchedEvent =
     }
   | {
       type: "on-evaluator-changes";
-      changes: {
-        [id: string]: EvaluatorChange;
-      };
+      changes: Record<string, EvaluatorChange>;
       timingData: TimingData;
     };
 
@@ -99,55 +98,66 @@ export interface TimingData {
   updateIntersections: number;
 }
 
-interface CalcPrivate {
-  //// undocumented, may break
-  myGraphsWrapper: {
+export interface TopLevelComponents {
+  headerController: {
     graphsController: {
-      getCurrentGraphTitle(): string | undefined;
+      getCurrentGraphTitle: () => string | undefined;
     };
   };
+}
+
+interface Toast {
+  message: string;
+  undoCallback?: () => void;
+  toastStyle?: "error";
+  /** Number of ms, non-positive means never hide (until "x" close button) */
+  hideAfter?: number;
+}
+
+interface CalcPrivate {
+  /// / undocumented, may break
   controller: {
     // _removeExpressionSynchronously(model: ItemModel): void;
-    _toplevelReplaceItemAt(
+    _toplevelReplaceItemAt: (
       index: number,
       model: ItemModel,
       shouldFocus: boolean
-    ): void;
-    createItemModel(modelTemplate: any): ItemModel;
-    getPillboxBackgroundColor(): string;
-    isGraphSettingsOpen(): boolean;
-    dispatch(e: DispatchedEvent): void;
-    getExpressionSearchStr(): string;
+    ) => void;
+    createItemModel: (modelTemplate: any) => ItemModel;
+    getPillboxBackgroundColor: () => string;
+    isGraphSettingsOpen: () => boolean;
+    dispatch: (e: DispatchedEvent) => void;
+    getExpressionSearchStr: () => string;
     dispatcher: {
-      register(func: (e: DispatchedEvent) => void): string;
-      unregister(id: string): void;
+      register: (func: (e: DispatchedEvent) => void) => string;
+      unregister: (id: string) => void;
     };
-    getTickerPlaying?(): boolean;
+    getTickerPlaying?: () => boolean;
     // The item models returned are actually much more detailed
-    getSelectedItem(): ItemModel | undefined;
-    getItemModel(id: any): ItemModel | undefined;
-    getItemModelByIndex(index: number): ItemModel | undefined;
-    getAllItemModels(): ItemModel[];
-    stopAllSliders(): void;
-    isKeypadOpen(): boolean;
-    getKeypadHeight(): number;
-    isDegreeMode(): boolean;
-    getExpressionSearchOpen(): boolean;
-    generateId(): string;
+    getSelectedItem: () => ItemModel | undefined;
+    getItemModel: (id: any) => ItemModel | undefined;
+    getItemModelByIndex: (index: number) => ItemModel | undefined;
+    getAllItemModels: () => ItemModel[];
+    stopAllSliders: () => void;
+    isKeypadOpen: () => boolean;
+    getKeypadHeight: () => number;
+    isDegreeMode: () => boolean;
+    getExpressionSearchOpen: () => boolean;
+    generateId: () => string;
     // returns a subscript that occurs nowhere else in the graph
-    generateTableXSubscript(): number;
-    updateViews(): void;
-    updateTheComputedWorld(): void;
-    commitUndoRedoSynchronously(e: { type: string }): void;
+    generateTableXSubscript: () => number;
+    updateViews: () => void;
+    updateTheComputedWorld: () => void;
+    commitUndoRedoSynchronously: (e: { type: string }) => void;
     evaluator: {
       workerPoolConnection: {
-        killWorker(): void;
+        killWorker: () => void;
       };
     };
     listModel: unknown;
-    _addItemToEndFromAPI(item: ItemModel): void;
-    _showToast(toast: { message: string; undoCallback?: () => void }): void;
-    getViewState(): {
+    _addItemToEndFromAPI: (item: ItemModel) => void;
+    _showToast: (toast: Toast) => void;
+    getViewState: () => {
       viewport: {
         xmin: number;
         ymin: number;
@@ -156,23 +166,27 @@ interface CalcPrivate {
       };
     };
     /** Mark UI tick required to convert render shells to full item lines */
-    markTickRequiredNextFrame(): void;
-    getPlayingSliders(): unknown[];
+    markTickRequiredNextFrame: () => void;
+    getPlayingSliders: () => { latex: string }[];
+    _tickSliders: (nowTimestamp: number) => void;
   };
-  //// public
+  _calc: {
+    globalHotkeys: TopLevelComponents;
+  };
+  /// / public
 
   // ** state manipulation
-  getState(): GraphState;
+  getState: () => GraphState;
   // "Warning: Calculator states should be treated as opaque values.
   // Manipulating states directly may produce a result that cannot be loaded
   // by GraphingCalculator.setState."
-  setState(
+  setState: (
     state: GraphState,
     opts?: {
       allowUndo?: boolean;
       remapColors?: boolean;
     }
-  ): void;
+  ) => void;
 }
 
 type Calc = CalcPrivate & Desmos.Calculator;

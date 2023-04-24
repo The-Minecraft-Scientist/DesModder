@@ -1,8 +1,16 @@
+import { GenericSettings, PluginID } from "../plugins";
+import {
+  HeartbeatOptions,
+  sendHeartbeat,
+  WindowHeartbeatOptions,
+} from "../plugins/wakatime/heartbeat";
 import injectScript from "utils/injectScript";
-import { postMessageDown, listenToMessageUp } from "utils/messages";
+import { listenToMessageUp, postMessageDown } from "utils/messages";
 
 const StorageKeys = {
   pluginsEnabled: "_plugins-enabled",
+  forceDisabled: "_force-disabled",
+  forceDisabledVersion: "_force-disabled-version",
   pluginSettings: "_plugin-settings",
 } as const;
 
@@ -13,39 +21,119 @@ function getInitialData() {
       [StorageKeys.pluginSettings]: {}, // default: no settings known
     },
     (items) => {
+      const settingsDown: Record<PluginID, GenericSettings> = structuredClone(
+        items?.[StorageKeys.pluginSettings] ?? {}
+      );
+      // Hide secret key from web page
+      if (settingsDown.wakatime?.secretKey) {
+        settingsDown.wakatime.secretKey =
+          "????????-????-????-????-????????????";
+      }
       postMessageDown({
         type: "apply-plugin-settings",
-        value: (items?.[StorageKeys.pluginSettings] ?? {}) as {
-          [id: string]: { [key: string]: boolean };
-        },
+        value: settingsDown,
       });
+      const pluginsEnabled: Record<PluginID, boolean> =
+        items?.[StorageKeys.pluginsEnabled] ?? {};
       postMessageDown({
         type: "apply-plugins-enabled",
-        value: (items?.[StorageKeys.pluginsEnabled] ?? {}) as {
-          [id: string]: boolean;
-        },
+        value: pluginsEnabled,
       });
+    }
+  );
+}
+
+function getPluginsForceDisabled() {
+  chrome.storage.sync.get(
+    {
+      [StorageKeys.forceDisabled]: [], // default: no plugins force-disabled
+      [StorageKeys.forceDisabledVersion]: "",
+    },
+    (items) => {
+      let forceDisabled: PluginID[] = items?.[StorageKeys.forceDisabled] ?? [];
+      const forceDisabledVersion: string =
+        items?.[StorageKeys.forceDisabledVersion] ?? "";
+      if (forceDisabledVersion !== VERSION) {
+        forceDisabled = [];
+        void chrome.storage.sync.set({
+          [StorageKeys.forceDisabled]: [],
+          [StorageKeys.forceDisabledVersion]: VERSION,
+        });
+      }
+      postMessageDown({
+        type: "apply-plugins-force-disabled",
+        value: forceDisabled,
+      });
+    }
+  );
+}
+
+function _sendHeartbeat(options: WindowHeartbeatOptions) {
+  chrome.storage.sync.get(
+    {
+      [StorageKeys.pluginSettings]: {},
+    },
+    (items) => {
+      const s = items?.[StorageKeys.pluginSettings];
+      const wakatime = s?.wakatime;
+      const secretKey = wakatime?.secretKey;
+      const projectName = wakatime?.projectName;
+      const splitProjects = wakatime?.splitProjects;
+      const fullOptions: HeartbeatOptions = {
+        ...options,
+        secretKey,
+        projectName,
+        splitProjects,
+      };
+
+      if (BROWSER === "chrome") {
+        // Chrome can only send wakatime requests from the background page
+        // pass message along to the background page
+        chrome.runtime.sendMessage(
+          chrome.runtime.id,
+          { type: "send-background-heartbeat", options: fullOptions },
+          (e) => {
+            if (e?.type === "heartbeat-error") {
+              postMessageDown(e);
+            }
+          }
+        );
+      } else {
+        // Firefox can only send wakatime requests from the content script
+        void sendHeartbeat(fullOptions, (e) => postMessageDown(e));
+      }
     }
   );
 }
 
 listenToMessageUp((message) => {
   switch (message.type) {
-    case "enable-script":
-      if (message.scriptName === "wolfram2desmos") {
-        injectScript(chrome.runtime.getURL("wolfram2desmos.js"));
-      }
+    case "get-plugins-force-disabled":
+      getPluginsForceDisabled();
       break;
-    case "get-initial-data":
+    case "get-initial-data": {
+      // prep to send data back down
       getInitialData();
+      // but also insert style sheet
+      const s = document.createElement("link");
+      s.rel = "stylesheet";
+      s.href = chrome.runtime.getURL("script.css");
+      document.head.appendChild(s);
       break;
+    }
     case "set-plugins-enabled":
-      chrome.storage.sync.set({
+      void chrome.storage.sync.set({
         [StorageKeys.pluginsEnabled]: message.value,
       });
       break;
+    case "set-plugins-force-disabled":
+      void chrome.storage.sync.set({
+        [StorageKeys.forceDisabled]: Array.from(message.value),
+        [StorageKeys.forceDisabledVersion]: VERSION,
+      });
+      break;
     case "set-plugin-settings":
-      chrome.storage.sync.set({
+      void chrome.storage.sync.set({
         [StorageKeys.pluginSettings]: message.value,
       });
       break;
@@ -55,13 +143,11 @@ listenToMessageUp((message) => {
         value: chrome.runtime.getURL("script.js"),
       });
       break;
-    case "get-worker-append-url":
-      postMessageDown({
-        type: "set-worker-append-url",
-        value: chrome.runtime.getURL("workerAppend.js"),
-      });
+    case "send-heartbeat":
+      _sendHeartbeat(message.options);
       break;
   }
+  return false;
 });
 
-injectScript(chrome.runtime.getURL("preloadScript.js"));
+injectScript(chrome.runtime.getURL("preload/script.js"));

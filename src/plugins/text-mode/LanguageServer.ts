@@ -10,20 +10,19 @@
  * This can maybe be moved to a worker at some point? But codemirror isn't in a
  * worker, so not sure.
  */
-
-import { Diagnostic } from "@codemirror/lint";
-import { RelevantEvent, eventSequenceChanges } from "./modify";
-import { EditorView, ViewUpdate } from "@codemirror/view";
-import { Tree } from "@lezer/common";
-import cstToRaw from "./down/cstToRaw";
-import { ensureSyntaxTree } from "@codemirror/language";
-import { GraphState } from "@desmodder/graph-state";
 import { Program, Statement } from "./down/TextAST";
+import cstToRaw from "./down/cstToRaw";
+import { RelevantEvent, eventSequenceChanges } from "./modify";
+import { ensureSyntaxTree } from "@codemirror/language";
+import { Diagnostic } from "@codemirror/lint";
+import { EditorView, ViewUpdate } from "@codemirror/view";
+import { GraphState } from "@desmodder/graph-state";
+import { Tree } from "@lezer/common";
 
 export interface ProgramAnalysis {
   ast: Program;
   diagnostics: Diagnostic[];
-  mapIDstmt: { [key: string]: Statement | undefined };
+  mapIDstmt: Record<string, Statement | undefined>;
 }
 
 export default class LanguageServer {
@@ -57,14 +56,14 @@ export default class LanguageServer {
   lastUpdateWasByUser: boolean = false;
 
   constructor(
-    private view: EditorView,
-    private setCalcState: (state: GraphState) => void
+    private readonly view: EditorView,
+    private readonly setCalcState: (state: GraphState) => void
   ) {
     this.setParsing(true);
   }
 
-  doLint(): Promise<Diagnostic[]> {
-    return new Promise((resolve) => {
+  async doLint(): Promise<Diagnostic[]> {
+    return await new Promise((resolve) => {
       if (!this.isParsing) {
         resolve(this.analysis!.diagnostics);
       } else {
@@ -78,7 +77,7 @@ export default class LanguageServer {
   }
 
   setParsing(parsing: boolean) {
-    if (this.isParsing == parsing) return;
+    if (this.isParsing === parsing) return;
     this.isParsing = parsing;
     if (parsing) {
       if (this.parseCheckInterval !== null)
@@ -164,7 +163,7 @@ export default class LanguageServer {
    */
   processQueuedEvents() {
     const changes = eventSequenceChanges(
-      this.view!,
+      this.view,
       this.queuedEvents,
       this.analysis!
     );

@@ -1,11 +1,11 @@
+import "./Button.less";
 import { Component, jsx } from "DCGView";
 import { mergeClass, MaybeClassDict } from "utils/utils";
-import "./Button.less";
 
 export default class Button extends Component<{
   color: "primary" | "red" | "light-gray";
   class?: MaybeClassDict;
-  onTap(e: Event): void;
+  onTap: (e: Event) => void;
   disabled?: boolean;
 }> {
   template() {
@@ -16,16 +16,13 @@ export default class Button extends Component<{
           mergeClass(
             {
               ["dcg-btn-" + this.props.color()]: true,
-              "dsm-btn-disabled":
-                (this.props.disabled && this.props.disabled()) || false,
+              "dsm-btn-disabled": this.props.disabled?.() ?? false,
               "dsm-btn": true,
             },
-            this.props.class && this.props.class()
+            this.props.class?.()
           )
         }
-        onTap={(e: Event) =>
-          !(this.props.disabled && this.props.disabled()) && this.props.onTap(e)
-        }
+        onTap={(e: Event) => !this.props.disabled?.() && this.props.onTap(e)}
       >
         {this.children}
       </span>

@@ -1,5 +1,5 @@
-import { createFFmpeg, fetchFile } from "@ffmpeg/ffmpeg";
 import Controller from "../Controller";
+import { createFFmpeg, fetchFile } from "@ffmpeg/ffmpeg";
 
 type FFmpeg = ReturnType<typeof createFFmpeg>;
 export type OutFileType = "gif" | "mp4" | "webm" | "apng";
@@ -10,7 +10,7 @@ async function exportAll(ffmpeg: FFmpeg, fileType: OutFileType, fps: number) {
   const outFilename = "out." + fileType;
 
   const outFlags = {
-    mp4: ["-vcodec", "libx264", "-pix_fmt", "yuv420p"],
+    mp4: ["-vcodec", "libx264"],
     webm: ["-vcodec", "libvpx-vp9", "-quality", "realtime", "-speed", "8"],
     // generate fresh palette on every frame (higher quality)
     // https://superuser.com/a/1239082
@@ -48,15 +48,6 @@ export async function cancelExport(controller: Controller) {
 }
 
 export async function initFFmpeg(controller: Controller) {
-  if (BROWSER === "firefox") {
-    console.warn(
-      "Close the Firefox DevTools before first opening the video creator menu. " +
-        "Cannot load ffmpeg.wasm while the DevTools are open due to a Firefox bug. " +
-        "See https://github.com/ffmpegwasm/ffmpeg.wasm/issues/111\n\n" +
-        "You may see errors 'Module.instantiateWasm callback failed with error: out of memory' or " +
-        "'worker.js onmessage() captured an uncaught exception: TypeError: f.asm is undefined' as a result"
-    );
-  }
   if (ffmpeg === null) {
     ffmpeg = createFFmpeg({
       log: false,
@@ -65,9 +56,7 @@ export async function initFFmpeg(controller: Controller) {
     ffmpeg.setLogger(({ type, message }) => {
       if (type === "fferr") {
         const match = message.match(/frame=\s*(?<frame>\d+)/);
-        if (match === null) {
-          return;
-        } else {
+        if (match !== null) {
           const frame = (match.groups as { frame: string }).frame;
           let denom = controller.frames.length - 1;
           if (denom === 0) denom = 1;
@@ -76,7 +65,12 @@ export async function initFFmpeg(controller: Controller) {
         }
       }
     });
-    await ffmpeg.load();
+    try {
+      await ffmpeg.load();
+    } catch (e) {
+      ffmpeg = null;
+      throw e;
+    }
   }
   return ffmpeg;
 }
@@ -90,17 +84,20 @@ export async function exportFrames(controller: Controller) {
 
   const filenames: string[] = [];
 
+  async function writeFile(filename: string, frame: string) {
+    if (ffmpeg !== null)
+      ffmpeg.FS("writeFile", filename, await fetchFile(frame));
+  }
+
   const len = (controller.frames.length - 1).toString().length;
-  controller.frames.forEach(async (frame, i) => {
+  controller.frames.forEach((frame, i) => {
     const raw = i.toString();
     // glob orders lexicographically, but we want numerically
     const padded = "0".repeat(len - raw.length) + raw;
     const filename = `desmos.${padded}.png`;
     // filenames may be pushed out of order because async, but doesn't matter
     filenames.push(filename);
-    if (ffmpeg !== null) {
-      ffmpeg.FS("writeFile", filename, await fetchFile(frame));
-    }
+    void writeFile(filename, frame);
   });
 
   const outFilename = await exportAll(
@@ -135,7 +132,7 @@ export async function exportFrames(controller: Controller) {
 function download(url: string, filename: string) {
   // https://gist.github.com/SlimRunner/3b0a7571f04d3a03bff6dbd9de6ad729#file-desmovie-user-js-L325
   // no point supporting anything besides Chrome (no SharedArrayBuffer support)
-  var a = document.createElement("a");
+  const a = document.createElement("a");
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);

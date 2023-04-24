@@ -1,7 +1,7 @@
-import { EditorView, WidgetType } from "@codemirror/view";
-import { jsx } from "utils/utils";
 import { toggleString } from ".";
 import "./inlineToggleWidget.less";
+import { EditorView, WidgetType } from "@codemirror/view";
+import { jsx } from "utils/utils";
 
 class InlineToggleWidget extends WidgetType {
   constructor(readonly value: string, readonly path: string) {
@@ -9,7 +9,7 @@ class InlineToggleWidget extends WidgetType {
   }
 
   eq(other: InlineToggleWidget) {
-    return other.value == this.value && other.path === this.path;
+    return other.value === this.value && other.path === this.path;
   }
 
   toDOM(view: EditorView) {
@@ -55,5 +55,5 @@ class InlineToggleWidget extends WidgetType {
 
 export default {
   paths: [".points.style", ".lines.style"],
-  widget: InlineToggleWidget,
+  Widget: InlineToggleWidget,
 };

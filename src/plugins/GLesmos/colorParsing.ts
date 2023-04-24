@@ -6,21 +6,23 @@ interface ColorType {
 function isEqual(lhs: any[], rhs: any[]) {
   if (lhs.length !== rhs.length) return false;
   let output = true;
-  for (var i = 0; i < lhs.length; ++i) {
+  for (let i = 0; i < lhs.length; ++i) {
     output = output && lhs[i] === rhs[i];
     if (!output) return output;
   }
   return output;
 }
 
+const FALLBACK_COLOR = [0.5, 0.5, 0.5, 1];
+
 function mapToColorSpace(
   clFrom: string | undefined,
   clTo: string | undefined
-): Function {
-  if (clFrom === undefined || clTo === undefined) return () => null;
-  if (clFrom === clTo) return (...args: number[]) => args[0];
+): (args: number[]) => number[] {
+  if (clFrom === undefined || clTo === undefined) return () => FALLBACK_COLOR;
+  if (clFrom === clTo) return (args) => args;
 
-  let convFunc: Function;
+  let convFunc: (...args: number[]) => number[];
   let rxAlpha: RegExp;
 
   switch (true) {
@@ -61,11 +63,11 @@ function mapToColorSpace(
       rxAlpha = /[a-z]{3}a/;
       break;
     default:
-      return () => null;
+      return () => FALLBACK_COLOR;
   }
 
   // bitfield to decide what to do with alpha disparity
-  let aBf: number =
+  const aBf: number =
     (rxAlpha.test(clFrom) ? 1 : 0) | (rxAlpha.test(clTo) ? 2 : 0);
 
   switch (aBf) {
@@ -81,50 +83,50 @@ function mapToColorSpace(
       };
     case 3: // alpha to alpha - alpha value gets added to output
       return (args: number[]) => {
-        let al = args.pop();
+        const al = args.pop()!;
         return convFunc(...args).concat(al);
       };
     default:
-      return () => null;
+      return () => FALLBACK_COLOR;
   }
 }
 
 function getRGBfromHSL(hue: number, sat: number, light: number) {
   const mod = (n: number, m: number) => (n * m >= 0 ? n % m : (n % m) + m);
-  let ls_ratio: number = Math.min(light, 1 - light) * sat;
+  const lsRatio: number = Math.min(light, 1 - light) * sat;
 
   return [0, 8, 4]
-    .map((offset, i) => {
+    .map((offset) => {
       return mod(offset + hue / 30, 12);
     })
-    .map((kval, i) => {
+    .map((kval) => {
       return (
         light -
-        ls_ratio * Math.max(Math.min(Math.min(kval - 3, 9 - kval), 1), -1)
+        lsRatio * Math.max(Math.min(Math.min(kval - 3, 9 - kval), 1), -1)
       );
     });
 }
 
 function getRGBfromHSV(hue: number, sat: number, value: number) {
   const mod = (n: number, m: number) => (n * m >= 0 ? n % m : (n % m) + m);
-  let vs_ratio: number = value * sat;
+  const vsRatio: number = value * sat;
 
   return [5, 3, 1]
-    .map((offset, i) => {
+    .map((offset) => {
       return mod(offset + hue / 60, 6);
     })
-    .map((kval, i) => {
+    .map((kval) => {
       return (
-        value - vs_ratio * Math.max(Math.min(Math.min(kval, 4 - kval), 1), 0)
+        value - vsRatio * Math.max(Math.min(Math.min(kval, 4 - kval), 1), 0)
       );
     });
 }
 
 export function getHSVfromRGB(red: number, green: number, blue: number) {
-  let value: number = Math.max(red, green, blue);
-  let range: number = value - Math.min(red, green, blue);
+  const value: number = Math.max(red, green, blue);
+  const range: number = value - Math.min(red, green, blue);
 
-  let sat: number = value === 0 ? 0 : range / value;
+  const sat: number = value === 0 ? 0 : range / value;
   let hue: number = 0;
   if (range === 0) hue = 0;
   else if (value === red) hue = (60 * (green - blue)) / range;
@@ -135,17 +137,18 @@ export function getHSVfromRGB(red: number, green: number, blue: number) {
 }
 
 function getHSVfromHSL(hue: number, sat: number, light: number) {
-  let v: number = light + sat * Math.min(light, 1 - light);
-  let s: number = v == 0 ? 0 : 2 * (1 - light / v);
+  const v: number = light + sat * Math.min(light, 1 - light);
+  const s: number = v === 0 ? 0 : 2 * (1 - light / v);
   return [hue, s, v];
 }
 
 function getHSLfromRGB(red: number, green: number, blue: number) {
-  let max: number = Math.max(red, green, blue);
-  let range: number = max - Math.min(red, green, blue);
+  const max: number = Math.max(red, green, blue);
+  const range: number = max - Math.min(red, green, blue);
 
-  let li: number = max - range / 2;
-  let sat: number = li == 0 || li == 1 ? 0 : (max - li) / Math.min(li, 1 - li);
+  const li: number = max - range / 2;
+  const sat: number =
+    li === 0 || li === 1 ? 0 : (max - li) / Math.min(li, 1 - li);
   let hue: number = 0;
   if (range === 0) hue = 0;
   else if (max === red) hue = (60 * (green - blue)) / range;
@@ -156,8 +159,9 @@ function getHSLfromRGB(red: number, green: number, blue: number) {
 }
 
 function getHSLfromHSV(hue: number, sat: number, value: number) {
-  let li: number = value * (1 - sat / 2);
-  let s: number = li == 0 || li == 1 ? 0 : (value - li) / Math.min(li, 1 - li);
+  const li: number = value * (1 - sat / 2);
+  const s: number =
+    li === 0 || li === 1 ? 0 : (value - li) / Math.min(li, 1 - li);
   return [hue, s, li];
 }
 
@@ -170,13 +174,15 @@ function parseCSSFunc(color: string): ColorType | null {
   const NUMMAP_RGB: boolean[] = [false, false, false];
   const NUMMAP_HSL: boolean[] = [false, true, true];
 
-  let [, funcName = "", argSet = ""] = color.trim().match(matchSignature) ?? [];
-  let args = argSet.match(matchArgs);
-  if (args === null) return null;
-  let alphaStr: string | undefined = (args = args.slice(1)).pop();
-  let alpha = parseFloat(alphaStr ?? "");
+  const [, funcName = "", argSet = ""] =
+    color.trim().match(matchSignature) ?? [];
+  const args0 = argSet.match(matchArgs);
+  if (args0 === null) return null;
+  const args = args0.slice(1);
+  const alphaStr: string | undefined = args.pop();
+  const alpha = parseFloat(alphaStr ?? "");
   // truthy map if argument evaluates as NaN (means number contains css units)
-  let pType: boolean[] = args.map((t) => isNaN(Number(t)));
+  const pType: boolean[] = args.map((t) => isNaN(Number(t)));
 
   let components: number[];
 
@@ -211,9 +217,9 @@ function parseCSSFunc(color: string): ColorType | null {
 export function parseCSSHex(color: string) {
   const rxHex: RegExp = /^#((?:[0-9a-z]){3,8})$/i;
 
-  let hexMatch: RegExpMatchArray | null = color.match(rxHex);
+  const hexMatch: RegExpMatchArray | null = color.match(rxHex);
   if (hexMatch === null) return null;
-  let hex: string = hexMatch[1];
+  const hex: string = hexMatch[1];
 
   let output: string[] | number[];
   switch (hex.length) {
@@ -243,7 +249,7 @@ export function parseCSSHex(color: string) {
 }
 
 function parseNamedColor(color: string) {
-  const NAME_TABLE: { [key: string]: string } = {
+  const NAME_TABLE: Record<string, string> = {
     black: "#000000",
     navy: "#000080",
     darkblue: "#00008b",
@@ -394,29 +400,23 @@ function parseNamedColor(color: string) {
     white: "#ffffff",
   }; // !NAME_TABLE
 
-  if (NAME_TABLE.hasOwnProperty(color.toLowerCase())) {
-    return NAME_TABLE[color.toLowerCase()];
-  } else {
-    return null;
-  }
+  return NAME_TABLE[color.toLowerCase()] ?? null;
 }
 
 export default function getRGBpack(cssColor: string): number[] {
-  let color: number[] | null = parseCSSHex(
+  const color: number[] | null = parseCSSHex(
     parseNamedColor(cssColor) ?? cssColor
   );
 
   if (color) {
     return color;
   } else {
-    let funcPar: ColorType | null = parseCSSFunc(cssColor);
-    let colorPack: number[] | null = mapToColorSpace(
+    const funcPar: ColorType | null = parseCSSFunc(cssColor);
+    if (funcPar?.values === undefined) return FALLBACK_COLOR;
+    const colorPack: number[] | null = mapToColorSpace(
       funcPar?.type,
       "rgba"
-    )(funcPar?.values);
-    if (colorPack === null) {
-      return [0.5, 0.5, 0.5, 1];
-    }
-    return colorPack;
+    )(funcPar.values);
+    return colorPack ?? FALLBACK_COLOR;
   }
 }

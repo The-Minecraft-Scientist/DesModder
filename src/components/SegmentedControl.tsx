@@ -1,52 +1,39 @@
-import { Component, jsx } from "DCGView";
-import { mergeClass, MaybeClassDict } from "utils/utils";
 import "./SegmentedControl.less";
+import { DesmosSegmentedControl } from "./desmosComponents";
+import { Component, jsx } from "DCGView";
 
 export default class SegmentedControl extends Component<{
   names: string[];
   selectedIndex: number;
-  setSelectedIndex(i: number): void;
-  class?: MaybeClassDict;
+  ariaGroupLabel: string;
+  setSelectedIndex: (i: number) => void;
   allowChange?: boolean;
 }> {
   template() {
     return (
-      <div
-        class={() =>
-          mergeClass(
-            "dcg-segmented-control-container",
-            this.props.class && this.props.class()
-          )
-        }
-        role="group"
-      >
-        {this.props.names().map((name, i) => (
-          <div
-            key={i}
-            class={() => ({
-              "dcg-segmented-control-btn": true,
-              "dcg-dark-gray-segmented-control-btn": true,
-              "dcg-selected dcg-active": i === this.props.selectedIndex(),
-              "dsm-disallow-change": !this.getChangeAllowed(i),
-            })}
-            role="button"
-            ariaLabel={name}
-            onTap={() =>
-              this.getChangeAllowed(i) && this.props.setSelectedIndex(i)
-            }
-          >
-            {name}
-          </div>
-        ))}
-      </div>
+      <DesmosSegmentedControl
+        staticConfig={this.getStaticConfig()}
+        ariaGroupLabel={this.props.ariaGroupLabel()}
+        disabled={() => !this.getChangeAllowed(-1)}
+      />
     );
+  }
+
+  getStaticConfig() {
+    return this.props.names().map((name, i) => ({
+      key: name,
+      label: () => name,
+      selected: () => i === this.props.selectedIndex(),
+      onSelect: () =>
+        this.getChangeAllowed(i) && this.props.setSelectedIndex(i),
+    }));
   }
 
   getChangeAllowed(i: number) {
     const allowChange = this.props.allowChange;
     return (
       allowChange === undefined ||
-      allowChange() ||
+      allowChange() === true ||
       i === this.props.selectedIndex()
     );
   }

@@ -11,10 +11,18 @@ menu-learn-more = Learn more
 menu-desmodder-plugins = DesModder Plugins
 menu-desmodder-tooltip = DesModder Menu
 
+## Category names
+category-core-name = Core
+category-utility-name = Utility
+category-visual-name = Visual
+category-integrations-name = Integrations
+
 ## GLesmos
 GLesmos-name = GLesmos
 GLesmos-desc = Render implicits on the GPU. Disabled on tab reload. Can cause the UI to slow down or freeze in rare cases; reload the page if you have issues.
 GLesmos-label-toggle-glesmos = Render with GLesmos
+GLesmos-confirm-lines = Confirm lines
+GLesmos-confirm-lines-body = GLesmos line rendering can be slow. Be careful, especially for a list of layers.
 # Missing: error messages
 
 ## Tips
@@ -68,7 +76,7 @@ builtin-settings-opt-expressions-name = Show Expressions
 builtin-settings-opt-expressions-desc = {""}
 builtin-settings-opt-zoomButtons-name = Show Zoom Buttons
 builtin-settings-opt-zoomButtons-desc = {""}
-builtin-settings-opt-expressionsTopbar-name = Show Top Bar
+builtin-settings-opt-expressionsTopbar-name = Show Expressions Top Bar
 builtin-settings-opt-expressionsTopbar-desc = {""}
 builtin-settings-opt-border-name = Border
 builtin-settings-opt-border-desc = Subtle border around the calculator
@@ -83,7 +91,7 @@ duplicate-expression-hotkey-desc = Type Ctrl+Q or Ctrl+Shift+Q to duplicate the 
 
 ## Right Click Tray
 right-click-tray-name = Right Click Tray
-right-click-tray-desc = Allows you to right click the settings bubble (style circle) to open the settings tray instead of having to hold left click.
+right-click-tray-desc = Allows settings tray to be opened with a right click instead of holding left click on the settings bubble
 
 ## Set Primary Color
 set-primary-color-name = Set Primary Color
@@ -96,7 +104,7 @@ set-primary-color-opt-doFavicon-desc = Toggle updating the site icon
 ## Hide Errors
 hide-errors-name = Hide Errors
 hide-errors-desc = Click error triangles to fade them and hide suggested sliders.
-hide-errors-hide = hide
+hide-errors-hide = Hide
 
 ## Folder Tools
 folder-tools-name = Folder Tools
@@ -111,6 +119,7 @@ video-creator-desc = Lets you export videos and GIFs of your graphs based on act
 video-creator-menu = Video Creator Menu
 video-creator-to = to
 video-creator-step = , step
+video-creator-ticks-step = Time step (ms):
 video-creator-prev-action = Prev
 video-creator-next-action = Next
 video-creator-size = Size:
@@ -127,16 +136,26 @@ video-creator-preview = Preview
 video-creator-delete-all = Delete all
 video-creator-filename-placeholder = set a filename
 video-creator-export = Export
-video-creator-export-ff = Export (Warning: currently unreliable/slow in Firefox)
 video-creator-export-as = Export as { $fileType }
 video-creator-fps = FPS:
 video-creator-method-once = once
 video-creator-method-slider = slider
 video-creator-method-action = action
+video-creator-method-ticks = ticks
 
 ## Shift+Enter Newline
 shift-enter-newline-name = Shift+Enter Newline
 shift-enter-newline-desc = Use Shift+Enter to type newlines in notes and image/folder titles.
+
+## Wakatime
+wakatime-name = WakaTime
+wakatime-desc = Track your desmos activity on WakaTime.com
+wakatime-opt-secretKey-name = Secret Key
+wakatime-opt-secretKey-desc = API Key used for WakaTime servers
+wakatime-opt-splitProjects-name = Split Projects by Graph
+wakatime-opt-splitProjects-desc = Store each graph as its own project instead of branches of a unified Desmos Project
+wakatime-opt-projectName-name = Project name
+wakatime-opt-projectName-desc = Visible from WakaTime, and shared for all Desmos projects
 
 ## Performance Display
 performance-info-name = Performance Display
@@ -148,3 +167,13 @@ performance-info-time-in-worker = Time In Worker
 performance-info-compiling = Compiling
 performance-info-rendering = Rendering
 performance-info-other = Other
+
+## Better Evaluation View
+better-evaluation-view-name = Better Evaluation View
+better-evaluation-view-desc = Displays list elements, colors, and undefined values
+better-evaluation-view-opt-lists-name = Show list elements
+better-evaluation-view-opt-lists-desc = Show list elements instead of list length
+better-evaluation-view-opt-colors-name = Show colors
+better-evaluation-view-opt-colors-desc = Show colors as rgb values
+better-evaluation-view-opt-colorLists-name = Show lists of colors
+better-evaluation-view-opt-colorLists-desc = Show lists of colors as lists of rgb values

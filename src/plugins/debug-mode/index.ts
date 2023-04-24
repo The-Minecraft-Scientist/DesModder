@@ -1,14 +1,19 @@
 import { Calc } from "globals/window";
+import { Plugin } from "plugins";
 
-export default {
+const debugMode: Plugin = {
   id: "debug-mode",
   onEnable: () => {
+    // The displayed indexes are stored in some state somewhere, so
+    // update the state first before updating views
+    Calc.controller.updateTheComputedWorld();
     Calc.controller.updateViews();
   },
   onDisable: () => {},
   afterDisable: () => {
+    Calc.controller.updateTheComputedWorld();
     Calc.controller.updateViews();
   },
-  alwaysEnabled: false,
   enabledByDefault: false,
-} as const;
+};
+export default debugMode;

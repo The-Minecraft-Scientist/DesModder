@@ -1,6 +1,7 @@
-import { Calc } from "globals/window";
-import { initGLesmosCanvas, GLesmosCanvas } from "./glesmosCanvas";
 import ViewportTransforms from "./ViewportTransforms";
+import { initGLesmosCanvas, GLesmosCanvas } from "./glesmosCanvas";
+import { glesmosError, GLesmosShaderPackage } from "./shaders";
+import { Calc } from "globals/window";
 
 export default class Controller {
   canvas: GLesmosCanvas | null = null;
@@ -15,30 +16,28 @@ export default class Controller {
   }
 
   drawGlesmosSketchToCtx(
-    compiledGL: CompiledGL,
+    compiledGL: GLesmosShaderPackage, // comes from exportAsGLesmos
     ctx: CanvasRenderingContext2D,
     transforms: ViewportTransforms,
     id: string
   ) {
-    const compiledGLString = [
-      compiledGL.deps.join("\n"),
-      compiledGL.defs.join("\n"),
-      // Non-premultiplied alpha:
-      `vec4 mixColor(vec4 from, vec4 top) {
-        float a = 1.0 - (1.0 - from.a) * (1.0 - top.a);
-        return vec4((from.rgb * from.a * (1.0 - top.a) + top.rgb * top.a) / a, a);
-      }`,
-      "void glesmosMain(vec2 coords) {",
-      "  outColor = vec4(0.0);",
-      "  float x = coords.x; float y = coords.y;",
-      compiledGL.bodies.join("\n"),
-      "}",
-    ].join("\n");
+    const deps = compiledGL.deps.join("\n");
+
     try {
-      if (this.canvas?.element) {
-        this.canvas.updateTransforms(transforms);
-        this.canvas?.setGLesmosShader(compiledGLString, id);
-        this.canvas?.render(id);
+      if (!this.canvas?.element) glesmosError("WebGL Context Lost!");
+
+      this.canvas.updateTransforms(transforms); // only do this once
+
+      if (compiledGL.hasOutlines)
+        // no grouping, perf will suffer
+        for (const chunk of compiledGL.chunks) {
+          this.canvas?.buildGLesmosFancy(deps, chunk);
+          this.canvas?.renderFancy();
+          ctx.drawImage(this.canvas?.element, 0, 0);
+        }
+      else {
+        this.canvas?.buildGLesmosFast(deps, compiledGL.chunks);
+        this.canvas?.renderFast();
         ctx.drawImage(this.canvas?.element, 0, 0);
       }
     } catch (e) {
@@ -48,10 +47,4 @@ export default class Controller {
       }
     }
   }
-}
-
-interface CompiledGL {
-  deps: string[];
-  defs: string[];
-  bodies: string[];
 }

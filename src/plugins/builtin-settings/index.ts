@@ -1,7 +1,8 @@
-import { Calc } from "globals/window";
-import { OptionalProperties } from "utils/utils";
-import { getQueryParams } from "utils/depUtils";
 import { Config, configList } from "./config";
+import { Calc } from "globals/window";
+import { Plugin } from "plugins";
+import { getQueryParams } from "utils/depUtils";
+import { OptionalProperties } from "utils/utils";
 
 type ConfigOptional = OptionalProperties<Config>;
 
@@ -18,11 +19,11 @@ function manageConfigChange(current: Config, changes: ConfigOptional) {
     ...changes,
   };
   if (changes.zoomButtons) {
-    if (false === proposedConfig.graphpaper) {
+    if (!proposedConfig.graphpaper) {
       newChanges.graphpaper = true;
     }
   }
-  if (false === changes.graphpaper && proposedConfig.zoomButtons) {
+  if (changes.graphpaper === false && proposedConfig.zoomButtons) {
     newChanges.zoomButtons = false;
   }
   return newChanges;
@@ -62,10 +63,10 @@ function onDisable() {
   }
 }
 
-export default {
+const builtinSettings: Plugin = {
   id: "builtin-settings",
-  onEnable: onEnable,
-  onDisable: onDisable,
+  onEnable,
+  onDisable,
   enabledByDefault: true,
   config: configList,
   onConfigChange(changes: ConfigOptional) {
@@ -73,4 +74,5 @@ export default {
     Calc.updateSettings(changes);
   },
   manageConfigChange,
-} as const;
+};
+export default builtinSettings;

@@ -1,14 +1,13 @@
-import { jquery, keys } from "utils/depUtils";
-import { Calc } from "globals/window";
-import { desModderController } from "script";
 import { MainPopupFunc } from "./components/MainPopup";
 import { controller } from "./index";
-import { format } from "i18n/i18n-core";
+import { Calc } from "globals/window";
+import { desModderController } from "script";
+import { jquery, keys } from "utils/depUtils";
 
 export function initView() {
   desModderController.addPillboxButton({
     id: "dsm-vc-menu",
-    tooltip: format("video-creator-menu"),
+    tooltip: "video-creator-menu",
     iconClass: "dcg-icon-film",
     popup: () => MainPopupFunc(controller),
   });
@@ -28,7 +27,7 @@ export function destroyView() {
 const captureFrameID = "dsm-vc-capture-frame";
 
 function percentage(x: number) {
-  return 100 * x + "%";
+  return `${100 * x}%`;
 }
 
 function applyCaptureFrame() {

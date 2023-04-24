@@ -1,0 +1,58 @@
+# Replacements for Shift-Enter Newline
+
+*plugin* `shift-enter-newline`
+
+## Change shift-enter to insert a newline in notes
+
+*Module* `expressions/smart_textarea`
+
+*Find*
+
+```js
+onKeydownEvent = function (e) {__onKeydownEvent__}
+```
+
+*Find* inside `onKeydownEvent` => `from`
+```js
+$n !== $Keys.ENTER || $e.metaKey
+```
+
+*Replace* `from` with
+```js
+$n !== $Keys.ENTER || $e.metaKey
+  || ($e.shiftKey && window.DesModder?.controller?.isPluginEnabled?.("shift-enter-newline"))
+```
+
+This leads to
+```js
+  $n !== $Keys.ENTER || $e.metaKey || $e.shiftKey
+    ? ...
+    : ($e.preventDefault(), this.props.onSpecialKey("Enter"))
+```
+
+When shift-enter is pressed, the first branch is taken instead of the second, so `this.props.onSpecialKey("Enter")` is not triggered, and the cursor does not move to the next expression.
+
+### Alternative
+
+*Module* `expressions/smart_textarea`
+
+*Find*
+
+```js
+onKeydownEvent(e) {__onKeydownEvent__}
+```
+
+*Find* inside `onKeydownEvent` => `from`
+```js
+$n === $enterKey && !$e.metaKey
+  ? ($e.preventDefault(), this.props.onSpecialKey("Enter"))
+```
+
+*Replace* `from` with
+```js
+$n === $enterKey && !$e.metaKey
+  && !($e.shiftKey && window.DesModder?.controller?.isPluginEnabled?.("shift-enter-newline"))
+  ? ($e.preventDefault(), this.props.onSpecialKey("Enter"))
+```
+
+When shift-enter is pressed, the test fails, so `this.props.onSpecialKey("Enter")` is not triggered, and the cursor does not move to the next expression.

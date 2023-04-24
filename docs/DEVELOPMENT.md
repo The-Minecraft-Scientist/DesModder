@@ -6,7 +6,7 @@
 - Check that `npm --version` is at least `7.0.0` to avoid issues with overwriting the lockfile.
 
 3. Run `git clone https://github.com/DesModder/DesModder` to download the latest commit
-4. Navigate to the directory, then run `npm install` to install dependencies
+4. Navigate to the directory, then run `npm run init` to setup hooks and install dependencies
 5. Run `npm run build` to build.
 6. Load the unpacked extension in the `dist/` folder through the directions at https://developer.chrome.com/docs/extensions/mv2/getstarted/#manifest (see "load unpacked")
 
@@ -29,7 +29,7 @@ First follow the instructions above in "Setup Environment".
 5. For this example, open the file `src/plugins.ts`.
 6. To test Prettier, find the line that starts `const _plugins = {`, and add an extra newline after the opening brace. Prettier should automatically remove that unneeded newline on save.
 7. To test Typescript, remove the `.id` from the next line. Typescript should tell you "A computed property name must be of type 'string', 'number', 'symbol', or 'any'."
-8. If both of these worked, then you are ready to start development. Run `npm run dev` in the DesModder directory to start the development server. There should hopefully be no errors.
+8. If both of these worked, then you are ready to start development. Run `npm run dev` in the DesModder directory to start the development server. There should hopefully be no errors. If there is a prettier error, run `npm run fix:prettier`
 9. You should have loaded the unpacked extension based on the instructions in "Setup Environment." Check that it works by opening https://desmos.com/calculator.
 10. Back in `src/plugins.ts`, delete one of the lines declaring a plugin, for example delete `[duplicateHotkey.id]: duplicateHotkey,`
 11. Refresh the Desmos page. The plugin should now be removed from the list.
@@ -38,56 +38,60 @@ First follow the instructions above in "Setup Environment".
 
 In this section, we will create a plugin which will simply change the displayed username in the top-right.
 
+All the code changes are visible at https://github.com/DesModder/DesModder/compare/main...example-plugin-change-username.
+
 1. You should already have a fork of DesModder cloned to your computer
 2. Create a new branch named "plugin-change-username" using `git checkout -b plugin-change-username`
 3. In the directory `src/plugins`, add a new directory called `change-username` and a file `src/plugins/change-username/index.ts` with the following contents:
 
    ```ts
-   function getHeaderElement() {
-     return document.querySelector(
-       ".header-account-name"
-     ) as HTMLElement | null;
+   import { Plugin } from "plugins";
+
+   function getHeaderElement(): HTMLElement | null {
+     return document.querySelector(".header-account-name");
    }
 
    let oldName = "";
 
    function onEnable() {
      const headerElement = getHeaderElement();
-     if (headerElement === null) {
-       return;
-     }
+     if (headerElement === null) return;
      const text = headerElement.innerText;
-     if (text !== undefined) {
-       oldName = text;
-     }
+     if (text !== undefined) oldName = text;
      headerElement.innerText = "DesModder ♥";
    }
 
    function onDisable() {
      const headerElement = getHeaderElement();
-     if (headerElement === null) {
-       return;
-     }
+     if (headerElement === null) return;
      headerElement.innerText = oldName;
    }
 
-   export default {
+   const changeUsername: Plugin = {
      id: "change-username",
-     name: "Change Username",
-     description: 'Change your username to "DesModder"',
-     onEnable: onEnable,
-     onDisable: onDisable,
+     onEnable,
+     onDisable,
      enabledByDefault: false,
-   } as const;
+   };
+   export default changeUsername;
    ```
 
-4. Load the plugin: In `src/plugins/index.ts`, add `import changeUsername from "plugins/change-username/index"` near the top and `[changeUsername.id]: changeUsername,` in `_plugins` near the bottom of the file.
+4. Setup the displayed name. This is managed in the Fluent file `localization/en.ftl`. Add some lines at the bottom. These are of the form `[pluginID]-name` and `[pluginID]-desc`:
+
+   ```
+   ## Change Username
+   change-username-name = Change Username
+   change-username-desc = Renames the displayed username in the top-right
+   ```
+
+5. Load the plugin: In `src/plugins/index.ts`, add `import changeUsername from "plugins/change-username/index"` near the top and `[changeUsername.id]: changeUsername,` in `_plugins` near the bottom of the file.
+6. Add the plugin to the menu: in `src/components/Menu.tsx`, add the plugin ID `"change-username"` to the category list `visual` in `categoryPlugins`.
    - after reloading the webpage (assuming you're running `npm run dev`), a new plugin should appear in the list in [desmos.com/calculator](https://desmos.com/calculator).
-5. Commit the changes to your fork
+7. Commit the changes to your fork
    - `git add .`
    - `git commit -m "Add Plugin 'Change Username'"`
    - `git push`
-6. For an actual plugin, you would do some more testing and eventually open a pull request on the repository. Run `npm run test` before submitting the PR to ensure that it will meet the checks.
+8. For an actual plugin, you would do some more testing and eventually open a pull request on the repository. Run `npm run test` and `npm run lint` before submitting the PR to ensure that it will meet automated checks. You can fix some problems automatically with `npm run fix`.
 
 ## Example: Creating a new translation file
 
@@ -97,6 +101,10 @@ The following examples will refer to the language code `fr` (French), but replac
 
 1. Create a new FTL (fluent) file by duplicating `localization/en.ftl` to `localization/fr.ftl`
 2. Add a line near the top of `src/i18n/i18n-core.ts` with an import statement, e.g. `import frFTL from "../../localization/fr.ftl";`
-3. Add a line at the bottom of `src/i18n/18n-core.ts` adding the imported l anguage, e.g. `addLanguage("fr", frFTL)`
+3. Add a line at the bottom of `src/i18n/18n-core.ts` adding the imported language, e.g. `addLanguage("fr", frFTL)`
 4. Edit some strings in the `localization/fr.ftl` file
 5. Follow the directions in "Making Changes" to run `npm run dev` to view changes on each reload of the page.
+
+If you want to check for mistakes, run `npm run audit-langs fr`.
+
+[Project Fluent documentation](https://projectfluent.org/fluent/guide/)

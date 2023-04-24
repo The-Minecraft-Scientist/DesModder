@@ -1,3 +1,7 @@
+import Controller from "../Controller";
+import { cancelCapture, CaptureMethod } from "../backend/capture";
+import "./CaptureMethod.css";
+import { Component, jsx } from "DCGView";
 import {
   SegmentedControl,
   If,
@@ -9,14 +13,8 @@ import {
   Tooltip,
   InlineMathInputView,
 } from "components";
-import { Component, jsx } from "DCGView";
-import Controller from "../Controller";
-import { cancelCapture, CaptureMethod } from "../backend/capture";
-import "./CaptureMethod.css";
 import { For } from "components/desmosComponents";
 import { format } from "i18n/i18n-core";
-
-const captureMethodNames: CaptureMethod[] = ["once", "slider", "action"];
 
 export default class SelectCapture extends Component<{
   controller: Controller;
@@ -30,19 +28,20 @@ export default class SelectCapture extends Component<{
   template() {
     return (
       <div>
-        <SegmentedControl
-          class="dsm-vc-select-capture-method"
-          names={() =>
-            (this.controller.hasAction()
-              ? captureMethodNames
-              : captureMethodNames.slice(0, -1)
-            ).map((method) => format("video-creator-method-" + method))
-          }
-          selectedIndex={() => this.getSelectedCaptureMethodIndex()}
-          setSelectedIndex={(i) => this.setSelectedCaptureMethodIndex(i)}
-          allowChange={() => !this.controller.isCapturing}
-        />
-        <Switch key={() => this.getSelectedCaptureMethod()}>
+        <div class="dsm-vc-select-capture-method">
+          <SegmentedControl
+            names={() =>
+              this.validCaptureMethodNames().map((method) =>
+                format("video-creator-method-" + method)
+              )
+            }
+            selectedIndex={() => this.getSelectedCaptureMethodIndex()}
+            setSelectedIndex={(i) => this.setSelectedCaptureMethodIndex(i)}
+            allowChange={() => !this.controller.isCapturing}
+            ariaGroupLabel={"Select capture method"}
+          />
+        </div>
+        <Switch key={() => this.controller.captureMethod}>
           {() =>
             ({
               slider: () => (
@@ -142,7 +141,7 @@ export default class SelectCapture extends Component<{
                   </If>
                   <For
                     each={
-                      // using an <If> here doesn't work becaus it doesn't update the StaticMathQuillView
+                      // using an <If> here doesn't work because it doesn't update the StaticMathQuillView
                       () =>
                         this.controller.getCurrentAction()?.latex !== undefined
                           ? [this.controller.getCurrentAction()]
@@ -162,8 +161,27 @@ export default class SelectCapture extends Component<{
                   </For>
                 </div>
               ),
+              ticks: () => (
+                <div class="dsm-vc-ticks-settings">
+                  {format("video-creator-ticks-step")}
+                  <InlineMathInputView
+                    ariaLabel="time step (ms)"
+                    handleLatexChanged={(v) =>
+                      this.controller.setTickTimeStepLatex(v)
+                    }
+                    hasError={() => !this.controller.isTickTimeStepValid()}
+                    latex={() => this.controller.tickTimeStepLatex}
+                    isFocused={() =>
+                      this.controller.isFocused("capture-tick-time-step")
+                    }
+                    handleFocusChanged={(b) =>
+                      this.controller.updateFocus("capture-tick-time-step", b)
+                    }
+                  />
+                </div>
+              ),
               once: () => null,
-            }[this.getSelectedCaptureMethod()]())
+            }[this.controller.captureMethod]())
           }
         </Switch>
         <div class="dsm-vc-capture-size">
@@ -245,14 +263,16 @@ export default class SelectCapture extends Component<{
                     this.controller.isExporting ||
                     !this.controller.areCaptureSettingsValid()
                   }
-                  onTap={() => this.controller.capture()}
+                  onTap={() => {
+                    void this.controller.capture();
+                  }}
                 >
                   {format("video-creator-capture")}
                 </Button>
               ),
               false: () => (
                 <Button
-                  color="red"
+                  color="light-gray"
                   class="dsm-vc-cancel-capture-button"
                   onTap={() => cancelCapture(this.controller)}
                 >
@@ -261,12 +281,17 @@ export default class SelectCapture extends Component<{
               ),
             }
           )}
-          <If predicate={() => this.getSelectedCaptureMethod() === "action"}>
+          <If
+            predicate={() =>
+              this.controller.captureMethod === "action" ||
+              this.controller.captureMethod === "ticks"
+            }
+          >
             {() => (
               <div class="dsm-vc-end-condition-settings">
                 {format("video-creator-step-count")}
                 <InlineMathInputView
-                  ariaLabel="ticker while"
+                  ariaLabel="step count"
                   handleLatexChanged={(v) =>
                     this.controller.setTickCountLatex(v)
                   }
@@ -287,21 +312,28 @@ export default class SelectCapture extends Component<{
     );
   }
 
-  getSelectedCaptureMethod() {
-    return this.controller.captureMethod === "action" &&
-      !this.controller.hasAction()
-      ? "once"
-      : this.controller.captureMethod;
+  validCaptureMethodNames() {
+    const captureMethodNames: CaptureMethod[] = [
+      "once",
+      "slider",
+      "action",
+      "ticks",
+    ];
+    return captureMethodNames.filter((s) =>
+      this.controller.isCaptureMethodValid(s)
+    );
   }
 
   getSelectedCaptureMethodIndex() {
-    return captureMethodNames.indexOf(this.getSelectedCaptureMethod());
+    return this.validCaptureMethodNames().indexOf(
+      this.controller.captureMethod
+    );
   }
 
   setSelectedCaptureMethodIndex(i: number) {
-    const name = captureMethodNames[i];
+    const name = this.validCaptureMethodNames()[i];
     if (name !== undefined) {
-      this.controller.setCaptureMethod(name);
+      this.controller.captureMethod = name;
     }
   }
 }

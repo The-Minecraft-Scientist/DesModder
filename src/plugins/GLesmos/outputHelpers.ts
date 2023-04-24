@@ -1,7 +1,7 @@
-import { ValueType } from "parsing/IR";
-import { evalMaybeRational, MaybeRational } from "parsing/parsenode";
-import { Types } from "./opcodeDeps";
 import getRGBPack from "./colorParsing";
+import { getConstantListLength, Types } from "./workerDeps";
+import { IRChunk, ValueType } from "parsing/IR";
+import { evalMaybeRational } from "parsing/parsenode";
 
 export function glslFloatify(x: number) {
   return Number.isInteger(x)
@@ -17,9 +17,9 @@ export function glslFloatify(x: number) {
 export function colorVec4(color: string, opacity: number) {
   let r: string, g: string, b: string;
   if (color[0] === "#" && color.length === 7) {
-    r = glslFloatify(parseInt(color.slice(1, 3), 16) / 256);
-    g = glslFloatify(parseInt(color.slice(3, 5), 16) / 256);
-    b = glslFloatify(parseInt(color.slice(5, 7), 16) / 256);
+    r = glslFloatify(parseInt(color.slice(1, 3), 16) / 255);
+    g = glslFloatify(parseInt(color.slice(3, 5), 16) / 255);
+    b = glslFloatify(parseInt(color.slice(5, 7), 16) / 255);
   } else {
     /**
      * alpha from css color is neglected
@@ -28,7 +28,7 @@ export function colorVec4(color: string, opacity: number) {
      */
     [r, g, b] = getRGBPack(color).map(glslFloatify);
   }
-  let a = glslFloatify(opacity);
+  const a = glslFloatify(opacity);
   return `vec4(${r}, ${g}, ${b}, ${a})`;
 }
 
@@ -53,27 +53,29 @@ export function compileObject(x: any): string {
   }
 }
 
-export function getGLType(v: ValueType) {
+export function getGLScalarType(v: ValueType) {
   switch (v) {
     case Types.Bool:
+    case Types.ListOfBool:
       return "bool";
     case Types.Number:
+    case Types.ListOfNumber:
       return "float";
     case Types.Point:
-      return "vec2";
-    case Types.ListOfBool:
-      return "bool[]";
-    case Types.ListOfNumber:
-      return "float[]";
     case Types.ListOfPoint:
-      return "vec2[]";
+      return "vec2";
     default:
       throw Error(`Type ${v} is not yet supported`);
   }
 }
 
-export function getGLScalarType(v: ValueType) {
-  const type = getGLType(v);
-  if (type.endsWith("[]")) return type.slice(0, -2);
-  else return type;
+export function getConstantListLengthRequired(chunk: IRChunk, index: number) {
+  const len = getConstantListLength(chunk, index);
+  if (len === undefined) throw new Error("List length must be a constant");
+  return len;
+}
+
+export function getGLTypeOfLength(v: ValueType, len: number) {
+  const t = getGLScalarType(v);
+  return Types.isList(v) ? `${t}[${len.toFixed(0)}]` : t;
 }

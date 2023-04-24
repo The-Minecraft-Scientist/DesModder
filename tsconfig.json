@@ -11,7 +11,16 @@
     "target": "es2020",
     "allowJs": true,
     "strict": true,
-    "baseUrl": "src"
+    "baseUrl": "src",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true
   },
-  "include": ["./src/"]
+  "include": [
+    "./src/",
+    "./scripts/",
+    "./loaders/",
+    "./esbuild.mjs",
+    "./.eslintrc.js"
+  ]
 }

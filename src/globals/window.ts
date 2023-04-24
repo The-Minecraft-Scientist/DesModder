@@ -1,20 +1,23 @@
-import Calc from "./Calc";
+import { DCGViewModule } from "../DCGView";
+import {
+  CheckboxComponent,
+  DStaticMathquillViewComponent,
+  InlineMathInputViewComponent,
+  MathQuillField,
+  MathQuillViewComponent,
+  SegmentedControlComponent,
+  TooltipComponent,
+} from "../components/desmosComponents";
+import CalcType from "./Calc";
+import { ItemModel } from "./models";
 
 interface windowConfig extends Window {
-  require(s: string[], callback: Function): void;
-  require(s: string): any;
-  Calc: Calc;
+  Calc: CalcType;
   DesModder: any;
-  define(
-    moduleName: string,
-    dependencies: string[],
-    definition: Function
-  ): void;
-  ALMOND_OVERRIDES: { [key: string]: Function };
-  dsm_workerAppend: string;
+  DesModderForceDisabled?: Set<string>;
 }
 
-declare var window: windowConfig;
+declare let window: windowConfig;
 
 export default window;
 
@@ -30,15 +33,75 @@ export const Calc = new Proxy(
       }
     },
   }
-) as Calc;
+) as CalcType;
 
-// defer access of window.require to when it is used
-export const desmosRequire = new Proxy(() => {}, {
-  apply: function (_target, _that, args) {
-    if (window.require === undefined) return undefined;
-    return (window.require as any)(...args);
-  },
-}) as typeof window.require;
+export const Fragile = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      if ((window as any).Desmos === undefined) return undefined;
+      const fragile = (window as any).Desmos?.Private?.Fragile;
+      if (fragile === undefined) return undefined;
+      return fragile[prop];
+    },
+  }
+) as {
+  DCGView: DCGViewModule;
+  PromptSliderView: any;
+  Checkbox: typeof CheckboxComponent;
+  SegmentedControl: typeof SegmentedControlComponent;
+  MathquillView: typeof MathQuillViewComponent & {
+    // static abstract getFocusedMathquill()
+    getFocusedMathquill: () => MathQuillField;
+  };
+  InlineMathInputView: typeof InlineMathInputViewComponent;
+  StaticMathquillView: typeof DStaticMathquillViewComponent;
+  Tooltip: typeof TooltipComponent;
+  ExpressionOptionsMenuView: {
+    prototype: {
+      getSections: {
+        apply: (m: { model: ItemModel }) => Section[];
+      };
+    };
+  };
+  evaluateLatex: (s: string, isDegreeMode: boolean) => number;
+  Keys: {
+    lookup: (e: KeyboardEvent) => string;
+    lookupChar: (e: KeyboardEvent) => string;
+    isUndo: (e: KeyboardEvent) => boolean;
+    isRedo: (e: KeyboardEvent) => boolean;
+    isHelp: (e: KeyboardEvent) => boolean;
+  };
+  jQuery: any;
+  getQueryParams: () => Record<string, string | true>;
+  getReconciledExpressionProps: (
+    type: string,
+    model?: ItemModel
+  ) => {
+    points: boolean;
+    lines: boolean;
+    fill: boolean;
+  };
+  List: {
+    removeItemById: (listModel: any, id: string) => void;
+    moveItemsTo: (listModel: any, from: number, to: number, n: number) => void;
+  };
+  currentLanguage: () => string;
+};
+
+type Section = "colors-only" | "lines" | "points" | "fill" | "label" | "drag";
+
+export const Private = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      if ((window as any).Desmos === undefined) return undefined;
+      const priv = (window as any).Desmos.Private;
+      if (priv === undefined) return undefined;
+      return priv[prop];
+    },
+  }
+) as any;
 
 /* Object.fromEntries based on https://dev.to/svehla/typescript-object-fromentries-389c */
 type DeepWriteable<T> = { -readonly [P in keyof T]: DeepWriteable<T[P]> };
@@ -52,6 +115,7 @@ export type FromEntriesWithReadOnly<T> = FromEntries<DeepWriteable<T>>;
 
 declare global {
   interface ObjectConstructor {
+    // eslint-disable-next-line @typescript-eslint/method-signature-style
     fromEntries<T>(obj: T): FromEntriesWithReadOnly<T>;
   }
 }

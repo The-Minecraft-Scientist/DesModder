@@ -1,34 +1,40 @@
 // reference https://www.khronos.org/registry/OpenGL-Refpages/gl4/index.php
 
 // Test using https://www.desmos.com/calculator/lfgehepjce
-const builtins: {
-  [K: string]:
-    | undefined
-    | {
-        tag: "glsl-builtin";
-        alias?: string;
-      }
-    | {
-        tag: "simple";
-        /** alias: replace function call references to this.
+const builtins: Record<
+  string,
+  | undefined
+  | {
+      tag: "glsl-builtin";
+      alias?: string;
+    }
+  | {
+      tag: "simple";
+      /** alias: replace function call references to this.
         Any builtin with a def or body specified must have an alias
         starting with "dsm_" to avoid collisions */
-        alias: string;
-        // def: function definition
-        def?: string;
-        // deps: dependencies
-        deps?: string[];
-        // body is a just a more concise way to set def
-        body?: string;
-      }
-    | {
-        // make: specialize the function definition for a given list size
-        tag: "list";
-        alias: string;
-        make(n: string): string;
-        deps?: (n: string) => string[];
-      };
-} = {
+      alias: string;
+      // def: function definition
+      def?: string;
+      // deps: dependencies
+      deps?: string[];
+      // body is a just a more concise way to set def
+      body?: string;
+    }
+  | {
+      // make: specialize the function definition for a given list size
+      tag: "list";
+      alias: string;
+      make: (n: string) => string;
+      deps?: (n: string) => string[];
+    }
+  | {
+      tag: "list2";
+      alias: string;
+      make: (n: string, m: string) => string;
+    }
+  | { tag: "type"; alias?: string; def: string }
+> = {
   sin: {
     tag: "glsl-builtin",
   },
@@ -506,7 +512,7 @@ const builtins: {
     alias: "dsm_median",
     make: (n) => {
       const len = parseInt(n);
-      return len % 2 == 1
+      return len % 2 === 1
         ? `float dsm_median(float[${n}] L) {
             return L[int(dsm_sortPerm(L)[${(len - 1) / 2}])-1];
           }`
@@ -616,15 +622,18 @@ const builtins: {
   },
   elementsAt: {
     alias: "dsm_elementsAt",
-    make: (n) => `
-    float[${n}] dsm_elementsAt(float[${n}] L, float[${n}] I) {
-      float[${n}] outList;
-      for (int i=0; i<${n}; i++) {
+    make: (n, m) => {
+      const len = Math.min(parseInt(n), parseInt(m));
+      return `
+    float[${len}] dsm_elementsAt(float[${n}] L, float[${m}] I) {
+      float[${len}] outList;
+      for (int i=0; i<${len}; i++) {
         outList[i] = L[int(I[i])-1];
       }
       return outList;
-    }`,
-    tag: "list",
+    }`;
+    },
+    tag: "list2",
   },
   uniquePerm: {
     alias: "dsm_uniquePerm",
@@ -671,6 +680,11 @@ const builtins: {
     }`,
     tag: "simple",
   },
+  ternary: {
+    alias: "dsm_ternary",
+    def: `T dsm_ternary(bool x, T y, T z) { if (x) return y; return z; }`,
+    tag: "type",
+  },
 };
 
 // Unhandled: CompilerFunctionTable (these get compiled out to the above functions)
@@ -694,15 +708,25 @@ export function getDefinition(s: string): string {
         ""
       );
     case "list":
-      return data.make(getArgs(s));
+      return data.make(getArg1(s));
+    case "list2":
+      return data.make(getArg1(s), getArg2(s));
+    case "type":
+      return data.def.replace(/T/g, getArg1(s));
   }
 }
 
 export function getDependencies(s: string) {
   const builtin = getBuiltin(s);
-  if (!builtin || builtin.tag === "glsl-builtin" || !builtin.deps) return [];
+  if (
+    !builtin ||
+    builtin.tag === "glsl-builtin" ||
+    !("deps" in builtin) ||
+    !builtin.deps
+  )
+    return [];
   if (builtin.tag === "list") {
-    return builtin.deps(getArgs(s));
+    return builtin.deps(getArg1(s));
   } else {
     return builtin.deps;
   }
@@ -716,6 +740,10 @@ export function getBuiltin(s: string) {
   return builtins[s.split("#")[0]];
 }
 
-export function getArgs(s: string) {
+export function getArg1(s: string) {
   return s.split(/#/)[1];
+}
+
+export function getArg2(s: string) {
+  return s.split(/#/)[2];
 }

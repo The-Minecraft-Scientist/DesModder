@@ -1,14 +1,15 @@
-import { OptionalProperties } from "utils/utils";
-import { Calc } from "globals/window";
 import Controller from "./Controller";
 import { Config, configList } from "./config";
 import { wolfram2desmos, isIllegalASCIIMath } from "./wolfram2desmos";
+import { Calc } from "globals/window";
+import { Plugin } from "plugins";
+import { OptionalProperties } from "utils/utils";
 
 // initialize controller and observe textarea and input tags
-export let controller = new Controller(["textarea", "input"], function (
+export const controller = new Controller(["textarea", "input"], function (
   e: FocusEvent
 ) {
-  let elem: HTMLElement | null | undefined = (e.target as HTMLElement)
+  const elem: HTMLElement | null | undefined = (e.target as HTMLElement)
     ?.parentElement?.parentElement;
   switch (e.type) {
     case "focusin":
@@ -24,7 +25,7 @@ export let controller = new Controller(["textarea", "input"], function (
 
 // https://stackoverflow.com/a/34278578
 function typeInTextArea(
-  newText: string | undefined,
+  newText: string,
   elm: Element | null = document.activeElement
 ) {
   const el = elm as HTMLTextAreaElement;
@@ -39,8 +40,8 @@ function typeInTextArea(
 }
 
 function pasteHandler(e: ClipboardEvent) {
-  let elem = e.target as HTMLElement;
-  let pasteData = e.clipboardData?.getData("Text");
+  const elem = e.target as HTMLElement;
+  const pasteData = e.clipboardData?.getData("Text");
 
   if (
     !(elem?.classList.contains("dcg-label-input") ?? true) &&
@@ -66,13 +67,14 @@ export function onDisable() {
   controller.disable();
 }
 
-export default {
+const w2d: Plugin = {
   id: "wolfram2desmos",
-  onEnable: onEnable,
-  onDisable: onDisable,
+  onEnable,
+  onDisable,
   enabledByDefault: true,
   config: configList,
   onConfigChange(changes: OptionalProperties<Config>) {
     controller.applyConfigFlags(changes);
   },
-} as const;
+};
+export default w2d;

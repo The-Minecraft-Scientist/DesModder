@@ -1,21 +1,20 @@
+import Controller from "../Controller";
+import { OutFileType, cancelExport } from "../backend/export";
+import CaptureMethod from "./CaptureMethod";
+import LoadingPie from "./LoadingPie";
+import "./MainPopup.less";
+import PreviewCarousel from "./PreviewCarousel";
+import { Component, jsx } from "DCGView";
 import {
   SegmentedControl,
   If,
   Input,
   Button,
   IfElse,
-  Tooltip,
   InlineMathInputView,
 } from "components";
-import { jquery } from "utils/depUtils";
-import { Component, jsx } from "DCGView";
-import CaptureMethod from "./CaptureMethod";
-import PreviewCarousel from "./PreviewCarousel";
-import LoadingPie from "./LoadingPie";
-import Controller from "../Controller";
-import { OutFileType, cancelExport } from "../backend/export";
-import "./MainPopup.less";
 import { format } from "i18n/i18n-core";
+import { jquery } from "utils/depUtils";
 
 const fileTypeNames: OutFileType[] = ["gif", "mp4", "webm", "apng"];
 
@@ -30,7 +29,7 @@ export default class MainPopup extends Component<{
 
   init() {
     this.controller = this.props.controller();
-    this.controller.tryInitFFmpeg();
+    void this.controller.tryInitFFmpeg();
   }
 
   template() {
@@ -63,7 +62,12 @@ export default class MainPopup extends Component<{
             />
           </div>
           <div class="dsm-vc-cancel-export-button">
-            <Button color="red" onTap={() => cancelExport(this.controller)}>
+            <Button
+              color="red"
+              onTap={() => {
+                void cancelExport(this.controller);
+              }}
+            >
               {format("video-creator-cancel-export")}
             </Button>
           </div>
@@ -76,26 +80,24 @@ export default class MainPopup extends Component<{
     return (
       <div class="dcg-popover-interior">
         <div class="dsm-vc-capture-menu">
-          <div class="dcg-group-title">{format("video-creator-capture")}</div>
+          <div class="dcg-popover-title">{format("video-creator-capture")}</div>
           <CaptureMethod controller={this.controller} />
         </div>
         <If predicate={() => this.controller.frames.length > 0}>
           {() => (
             <div class="dsm-vc-preview-menu">
-              <div class="dcg-group-title dsm-vc-delete-all-row">
-                {format("video-creator-preview")}
-                <Tooltip
-                  tooltip={format("video-creator-delete-all")}
-                  gravity="n"
-                >
+              <div class="dsm-vc-delete-all-row">
+                <div class="dcg-popover-title">
+                  {format("video-creator-preview")}
+                </div>
+                <div class="dsm-vc-delete-all">
                   <Button
-                    color="red"
+                    color="light-gray"
                     onTap={() => this.controller.deleteAll()}
-                    class="dsm-vc-delete-all-button"
                   >
-                    <i class="dcg-icon-remove" />
+                    {format("video-creator-delete-all")}
                   </Button>
-                </Tooltip>
+                </div>
               </div>
               <div
                 class={() => ({
@@ -129,16 +131,15 @@ export default class MainPopup extends Component<{
         <If predicate={() => this.controller.frames.length > 0}>
           {() => (
             <div class="dsm-vc-export-menu">
-              <div class="dcg-group-title">
-                {BROWSER === "firefox"
-                  ? format("video-creator-export-ff")
-                  : format("video-creator-export")}
+              <div class="dcg-popover-title">
+                {format("video-creator-export")}
               </div>
               <div class="dsm-vc-select-export-type">
                 <SegmentedControl
                   names={fileTypeNames}
                   selectedIndex={() => this.getSelectedFileTypeIndex()}
                   setSelectedIndex={(i) => this.setSelectedFileTypeIndex(i)}
+                  ariaGroupLabel={"Select export type"}
                 />
               </div>
               <Input
@@ -154,7 +155,9 @@ export default class MainPopup extends Component<{
                 <Button
                   color="primary"
                   class="dsm-vc-export-frames-button"
-                  onTap={() => this.controller.exportFrames()}
+                  onTap={() => {
+                    void this.controller.exportFrames();
+                  }}
                   disabled={() =>
                     this.controller.frames.length === 0 ||
                     this.controller.isCapturing ||

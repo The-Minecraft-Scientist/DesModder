@@ -1,17 +1,21 @@
-import { desmosRequire } from "globals/window";
-const DCGView = desmosRequire("dcgview") as DCGViewModule;
+import { Fragile } from "globals/window";
+
+export const DCGView = Fragile.DCGView;
 
 type OrConst<T> = {
+  // eslint-disable-next-line @typescript-eslint/ban-types
   [K in keyof T]: T[K] extends Function ? T[K] : T[K] | (() => T[K]);
 };
 
 type ToFunc<T> = {
+  // eslint-disable-next-line @typescript-eslint/ban-types
   [K in keyof T]: T[K] extends Function ? T[K] : () => T[K];
 };
 
 export abstract class ClassComponent<PropsType = Props> {
   props!: ToFunc<PropsType>;
   children!: unknown;
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
   constructor(_props: OrConst<PropsType>) {}
   init(): void {}
   abstract template(): unknown;
@@ -26,31 +30,52 @@ export abstract class ClassComponent<PropsType = Props> {
       };
 }
 
-type Component = ClassComponent | (() => string);
+type ComponentArgument = ClassComponent | (() => string);
 
-export interface LooseProps {
-  [key: string]: any;
-}
+export type LooseProps = Record<string, any>;
 
-export interface Props {
-  [key: string]: Function;
-}
+export type Props = Record<string, () => unknown>;
 
 export interface MountedComponent {
-  update(): void;
+  update: () => void;
 }
 
-interface DCGViewModule {
+abstract class ForComponent<T> extends ClassComponent<{
+  each: Array<T>;
+  key: (t: T) => string | number;
+}> {}
+
+interface IfElseSecondParam {
+  true: () => typeof ClassComponent;
+  false: () => typeof ClassComponent;
+}
+
+export interface DCGViewModule {
+  Components: {
+    For: typeof ForComponent;
+    If: typeof ClassComponent;
+    IfElse: (p: () => boolean, v: IfElseSecondParam) => typeof ClassComponent;
+    // I don't know how to use the rest of these
+    IfDefined: typeof ClassComponent;
+    Input: typeof ClassComponent;
+    Switch: typeof ClassComponent;
+    SwitchUnion: typeof ClassComponent;
+    Textarea: typeof ClassComponent;
+  };
   Class: typeof ClassComponent;
-  const<T>(v: T): () => T;
-  createElement(el: Component, props: Props, ...children: Component[]): unknown;
+  const: <T>(v: T) => () => T;
+  createElement: (
+    el: ComponentArgument,
+    props: Props,
+    ...children: ComponentArgument[]
+  ) => unknown;
   // couldn't figure out type for `comp`, so I just put | any
-  mountToNode(
+  mountToNode: (
     comp: ClassComponent | any,
     el: HTMLElement,
     props: Props
-  ): MountedComponent;
-  unmountFromNode(el: HTMLElement): void;
+  ) => MountedComponent;
+  unmountFromNode: (el: HTMLElement) => void;
 }
 
 export const Component = DCGView.Class;
@@ -59,9 +84,10 @@ export const mountToNode = DCGView.mountToNode;
 export const unmountFromNode = DCGView.unmountFromNode;
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicAttributes {
-      class?: string | { [key: string]: boolean };
+      class?: string | Record<string, boolean>;
     }
     interface IntrinsicElements {
       div: any;
@@ -101,9 +127,9 @@ declare global {
  */
 
 export function jsx(
-  el: Component,
+  el: ComponentArgument,
   props: LooseProps,
-  ...children: Component[]
+  ...children: ComponentArgument[]
 ) {
   /* Handle differences between typescript's expectation and DCGView */
   if (!Array.isArray(children)) {

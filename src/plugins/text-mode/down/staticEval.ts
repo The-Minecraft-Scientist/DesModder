@@ -1,6 +1,6 @@
-import { Diagnostic } from "@codemirror/lint";
-import { error } from "./diagnostics";
 import TextAST from "./TextAST";
+import { error } from "./diagnostics";
+import { Diagnostic } from "@codemirror/lint";
 
 export function evalExpr(
   diagnostics: Diagnostic[],
@@ -11,9 +11,10 @@ export function evalExpr(
       return expr.value;
     case "String":
       return expr.value;
-    case "PrefixExpression":
+    case "PrefixExpression": {
       const value = evalExpr(diagnostics, expr.expr);
       return value !== null ? -value : null;
+    }
     case "Identifier":
       // TODO: create proper builtin map
       // Rudimentary variable inlining
@@ -34,7 +35,7 @@ export function evalExpr(
   }
 }
 
-const builtinMap: { [key: string]: number | string | boolean | null } = {
+const builtinMap: Record<string, number | string | boolean | null> = {
   false: false,
   true: true,
   pi: Math.PI,

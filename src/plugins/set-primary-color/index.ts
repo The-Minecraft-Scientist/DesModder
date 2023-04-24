@@ -1,7 +1,8 @@
-import { OptionalProperties } from "utils/utils";
-import { getHSVfromRGB, parseCSSHex } from "plugins/GLesmos/colorParsing";
-import "./overrides.less";
 import "./custom-overrides.less";
+import "./overrides.less";
+import { Plugin } from "plugins";
+import { getHSVfromRGB, parseCSSHex } from "plugins/GLesmos/colorParsing";
+import { OptionalProperties } from "utils/utils";
 
 interface Config {
   primaryColor: string;
@@ -96,18 +97,16 @@ function onDisable() {
   faviconLink.href = originalHref;
 }
 
-export default {
+const setPrimaryColor: Plugin = {
   id: "set-primary-color",
-  onEnable: onEnable,
-  onDisable: onDisable,
+  onEnable,
+  onDisable,
   enabledByDefault: false,
   config: [
     {
       key: "primaryColor",
-      type: "color",
-      // Desmos Blue, unfortunately
-      // We don't set green as default because it's hard to match up
-      // button color and favicon color when green
+      type: "string",
+      variant: "color",
       default: DEFAULT_COLOR,
     },
     {
@@ -120,3 +119,4 @@ export default {
     applyConfig(config);
   },
 } as const;
+export default setPrimaryColor;

@@ -1,5 +1,104 @@
 # DesModder Changelog
 
+## 0.10.3
+
+New: translations for French!
+
+Bug fixes and improvements:
+
+- Fancier title for popover menus (DesModder menu, Video Creator menu, Performance View menu)
+- Allow vertical scrollbar for the popover menus
+- Divide plugins into categories on the main menu
+- Automatically re-enable plugins when version is updated
+- (Better Evaluation View) Use horizontal scrollbar instead of overflowing output
+- (Video Creator) Fix bug where the previewed frame would "jump around"
+- (Find and Replace) Fix bug where replacements would not work on tables
+- (Text Mode) Fix initialization error
+- (Text Mode) Fix ticker overflow visual issue
+
+## 0.10.2
+
+Fix GLesmos loading error.
+
+## 0.10.1
+
+Internal fixes.
+
+## 0.10.0
+
+New features:
+
+- Better Evaluation View plugin
+- (GLesmos) Now supports lines (outlines)
+- (Video Creator) Support capturing all moving sliders simultaneously
+
+Bug fixes and improvements:
+
+- (GLesmos) Rescale brightness to allow reaching pure white
+- (GLesmos) No longer breaks when toggled off then on
+- (GLesmos) Some list bugs fixed
+- (Set Primary Color) Styling improvements
+- (Wolfram to Desmos) Fix radical notation
+- (Folder Tools) Merge next folder if no expressions are between
+- (Video Creator) FFmpeg load can no longer be circumvented by toggling the menu
+- (Video Creator) Fixes defaulting video export name to graph title
+- Internal stability improvements
+
+## 0.9.3
+
+Bug fixes and improvements:
+
+- Various internal stability improvements
+- Faster loading time
+- Show a message if WakaTime secret key is wrong
+
+## 0.9.2
+
+Fixes another race condition preventing loading under certain conditions.
+
+## 0.9.1
+
+Fixes a loading race condition introduced by the previous release.
+
+## 0.9.0
+
+Another emergency bugfix; fixes the loading error.
+
+Also comes with some performance improvements from an overhaul of the patching system.
+
+## 0.8.7
+
+Emergency bugfix after Desmos changed a bunch of internals.
+
+- Fixes Video Creator, WakaTime, and GLesmos
+
+## 0.8.6
+
+- Fix various WakaTime bugs
+- Allow configuring WakaTime project name
+
+## 0.8.5
+
+Bug fixes:
+
+- (WakaTime) Fix heartbeats in Firefox
+
+## 0.8.4
+
+New features:
+
+- WakaTime plugin
+
+Bug fixes and improvements:
+
+- (Video Creator) Fix UI bugs that prevented capture
+- (Video Creator) Fix mp4 0-byte export
+- (GLesmos) Cache compiled shaders: huge performance gain
+- (GLesmos) Clamp fill opacity between 0 and 1
+- (GLesmos) Fix two-argument sort when the lists are different lengths
+- (GLesmos) Fix lists in piecewise expressions
+- (Tip) Widen tips when the expression list is wide
+
 ## 0.8.3
 
 Bug fixes:

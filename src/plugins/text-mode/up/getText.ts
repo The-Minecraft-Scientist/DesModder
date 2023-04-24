@@ -1,7 +1,7 @@
-import { Calc } from "globals/window";
 import Aug from "../aug/AugState";
 import rawToAug from "../aug/rawToAug";
 import augToText from "./augToText";
+import { Calc } from "globals/window";
 
 /**
  * @returns [boolean hasError, string text]
@@ -20,6 +20,7 @@ export default function getText(): [boolean, string] {
 
 function itemHasError(item: Aug.ItemAug) {
   return (
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     item.error || (item.type === "folder" && item.children.some(itemHasError))
   );
 }

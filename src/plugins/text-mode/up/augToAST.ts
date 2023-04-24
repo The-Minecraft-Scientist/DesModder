@@ -1,7 +1,7 @@
-import { Calc } from "globals/window";
-import { getSections } from "utils/depUtils";
 import Aug from "../aug/AugState";
 import TextAST from "../down/TextAST";
+import { Calc } from "globals/window";
+import { getSections } from "utils/depUtils";
 
 export function graphSettingsToAST(
   settings: Aug.GraphSettings
@@ -74,7 +74,7 @@ export function itemAugToAST(item: Aug.ItemAug): TextAST.Statement | null {
     pinned: booleanToAST(item.type !== "folder" && item.pinned, false),
   };
   switch (item.type) {
-    case "expression":
+    case "expression": {
       if (item.latex === undefined) return null;
       const expr = rootLatexToAST(item.latex);
       if (
@@ -116,6 +116,7 @@ export function itemAugToAST(item: Aug.ItemAug): TextAST.Statement | null {
           ...expressionStyle(item),
         }),
       };
+    }
     case "image":
       return {
         type: "Image",
@@ -313,7 +314,7 @@ function columnToAST(
       id: idToString(col.id),
       ...columnExpressionCommonStyle(
         col,
-        colIndex == 0
+        colIndex === 0
           ? []
           : ["points", "lines", ...(draggable ? ["drag" as const] : [])]
       ),
@@ -321,9 +322,12 @@ function columnToAST(
   };
 }
 
-function styleMapping(from: {
-  [key: string]: TextAST.Expression | TextAST.StyleMapping | null | undefined;
-}): TextAST.StyleMapping | null {
+function styleMapping(
+  from: Record<
+    string,
+    TextAST.Expression | TextAST.StyleMapping | null | undefined
+  >
+): TextAST.StyleMapping | null {
   const nonemptyEntries = Object.entries(from).filter(
     ([_, value]) => value != null
   ) as [string, TextAST.Expression | TextAST.StyleMapping][];
@@ -356,7 +360,9 @@ function identifierToAST(name: { symbol: string }): TextAST.Identifier {
   };
 }
 
-function numberToASTmaybe(num: number | undefined): TextAST.Number | undefined {
+function numberToASTmaybe(
+  num: number | undefined
+): TextAST.NumberNode | undefined {
   return num !== undefined
     ? {
         type: "Number",
@@ -365,7 +371,9 @@ function numberToASTmaybe(num: number | undefined): TextAST.Number | undefined {
     : undefined;
 }
 
-function stringToASTmaybe(str: string | undefined): TextAST.String | undefined {
+function stringToASTmaybe(
+  str: string | undefined
+): TextAST.StringNode | undefined {
   return str !== undefined
     ? {
         type: "String",
@@ -493,7 +501,7 @@ function childLatexToAST(e: Aug.Latex.AnyChild): TextAST.Expression {
         expr: childLatexToAST(e.expr),
         assignments: e.assignments.map(assignmentExprToAST),
       };
-    case "Piecewise":
+    case "Piecewise": {
       const piecewiseBranches: TextAST.PiecewiseBranch[] = [];
       let curr: Aug.Latex.AnyChild = e;
       while (curr.type === "Piecewise") {
@@ -519,6 +527,7 @@ function childLatexToAST(e: Aug.Latex.AnyChild): TextAST.Expression {
         type: "PiecewiseExpression",
         branches: piecewiseBranches,
       };
+    }
     case "RepeatedOperator":
       return {
         type: "RepeatedExpression",

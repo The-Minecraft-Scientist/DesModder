@@ -1,9 +1,9 @@
-import { Button, IconButton, Tooltip } from "components";
-import { Component, jsx } from "DCGView";
 import Controller from "./Controller";
-import DesModderController from "main/Controller";
 import "./PerformanceView.less";
+import { Component, jsx } from "DCGView";
+import { Button, IconButton, Tooltip } from "components";
 import { format } from "i18n/i18n-core";
+import DesModderController from "main/Controller";
 
 export class PerformanceView extends Component<{
   controller: () => Controller;
@@ -12,23 +12,26 @@ export class PerformanceView extends Component<{
   template() {
     return (
       <div class="dcg-popover-interior dsm-performance-info-menu">
-        <div class="dsm-pi-pin-menu-button-container">
-          <Tooltip
-            gravity="s"
-            tooltip={format("performance-info-sticky-tooltip")}
-          >
-            <IconButton
-              iconClass={"dsm-icon-bookmark"}
-              onTap={() => {
-                this.props.desModderController().toggleMenuPinned();
-              }}
-              btnClass={() => ({
-                "dsm-pi-pin-menu-button": true,
-                "dsm-selected":
-                  this.props.desModderController().pillboxMenuPinned,
-              })}
-            />
-          </Tooltip>
+        <div class="dsm-pi-title-row">
+          <div class="dcg-popover-title">{format("performance-info-name")}</div>
+          <div class="dsm-pi-pin-menu-button-container">
+            <Tooltip
+              gravity="s"
+              tooltip={format("performance-info-sticky-tooltip")}
+            >
+              <IconButton
+                iconClass={"dsm-icon-bookmark"}
+                onTap={() => {
+                  this.props.desModderController().toggleMenuPinned();
+                }}
+                btnClass={() => ({
+                  "dsm-pi-pin-menu-button": true,
+                  "dsm-selected":
+                    this.props.desModderController().pillboxMenuPinned,
+                })}
+              />
+            </Tooltip>
+          </div>
         </div>
         <ul>
           <li>

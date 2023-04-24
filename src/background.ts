@@ -1,14 +1,21 @@
+import { sendHeartbeat } from "./plugins/wakatime/heartbeat";
 import "globals/env";
+
+// Send requests that would otherwise be blocked by CORS if sent from a content script
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "send-background-heartbeat") {
+    void sendHeartbeat(msg.options, sendResponse);
+  }
+  return true;
+});
 
 if (BROWSER === "chrome") {
   // FIREFOX TODO: find Firefox equivalent. chrome.browserAction?
-  if (chrome.action?.onClicked) {
-    chrome.action.onClicked.addListener(() => {
-      chrome.tabs.create({
-        url: "https://www.desmos.com/calculator",
-      });
+  chrome.action.onClicked?.addListener(() => {
+    void chrome.tabs.create({
+      url: "https://www.desmos.com/calculator",
     });
-  }
+  });
 }
 
 if (BROWSER === "firefox") {
@@ -22,7 +29,7 @@ if (BROWSER === "firefox") {
       cancel: url.endsWith(".js"),
     }),
     {
-      urls: ["https://www.desmos.com/assets/build/calculator_desktop-*.js"],
+      urls: ["https://*.desmos.com/assets/build/calculator_desktop-*.js"],
     },
     ["blocking"]
   );
@@ -47,7 +54,7 @@ if (BROWSER === "firefox") {
       ],
     }),
     {
-      urls: ["https://www.desmos.com/*"],
+      urls: ["https://*.desmos.com/calculator*"],
     },
     ["blocking", "responseHeaders"]
   );

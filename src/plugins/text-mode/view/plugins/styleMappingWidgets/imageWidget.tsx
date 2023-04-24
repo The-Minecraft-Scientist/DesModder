@@ -1,7 +1,7 @@
-import { EditorView, WidgetType } from "@codemirror/view";
-import { jsx } from "utils/utils";
 import { toggleString } from ".";
 import "./imageWidget.less";
+import { EditorView, WidgetType } from "@codemirror/view";
+import { jsx } from "utils/utils";
 
 class ImageWidget extends WidgetType {
   constructor(readonly value: string) {
@@ -9,7 +9,7 @@ class ImageWidget extends WidgetType {
   }
 
   eq(other: ImageWidget) {
-    return other.value == this.value;
+    return other.value === this.value;
   }
 
   toDOM(view: EditorView) {
@@ -39,5 +39,5 @@ class ImageWidget extends WidgetType {
 
 export default {
   paths: [".url", ".hoveredImage", ".depressedImage"],
-  widget: ImageWidget,
+  Widget: ImageWidget,
 };

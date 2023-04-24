@@ -1,10 +1,15 @@
 import { updateView } from "./View";
-import { jquery, keys, EvaluateSingleExpression } from "utils/depUtils";
-import { Calc } from "globals/window";
-import { ExpressionModel } from "globals/models";
-import { isValidNumber, isValidLength, escapeRegex } from "./backend/utils";
-import { OutFileType, exportFrames, initFFmpeg } from "./backend/export";
 import { CaptureMethod, SliderSettings, capture } from "./backend/capture";
+import { OutFileType, exportFrames, initFFmpeg } from "./backend/export";
+import { isValidNumber, isValidLength, escapeRegex } from "./backend/utils";
+import { ExpressionModel } from "globals/models";
+import { Calc } from "globals/window";
+import {
+  jquery,
+  keys,
+  EvaluateSingleExpression,
+  getCurrentGraphTitle,
+} from "utils/depUtils";
 
 type FocusedMQ =
   | "none"
@@ -13,6 +18,7 @@ type FocusedMQ =
   | "capture-slider-max"
   | "capture-slider-step"
   | "capture-tick-count"
+  | "capture-tick-time-step"
   | "capture-width"
   | "capture-height"
   | "export-fps";
@@ -37,17 +43,20 @@ export default class Controller {
   exportProgress = -1;
 
   // ** capture methods
-  captureMethod: CaptureMethod = "once";
+  #captureMethod: CaptureMethod = "once";
   sliderSettings: SliderSettings = {
     variable: "a",
     minLatex: "0",
     maxLatex: "10",
     stepLatex: "1",
   };
+
   actionCaptureState: "none" | "waiting-for-update" | "waiting-for-screenshot" =
     "none";
+
   currentActionID: string | null = null;
   tickCountLatex: string = "10";
+  tickTimeStepLatex: string = "40";
 
   // ** capture sizing
   captureHeightLatex = "";
@@ -73,15 +82,15 @@ export default class Controller {
     updateView();
   }
 
-  tryInitFFmpeg() {
-    initFFmpeg(this).then(() => {
-      this.ffmpegLoaded = true;
-      this.updateView();
-    });
+  async tryInitFFmpeg() {
+    await initFFmpeg(this);
+    this.ffmpegLoaded = true;
+    this.updateView();
   }
 
   deleteAll() {
     this.frames = [];
+    this.previewIndex = 0;
     this.updateView();
   }
 
@@ -122,16 +131,26 @@ export default class Controller {
   }
 
   getOutfileName() {
-    return (
-      this.outfileName ??
-      Calc.myGraphsWrapper.graphsController.getCurrentGraphTitle() ??
-      DEFAULT_FILENAME
-    );
+    return this.outfileName ?? getCurrentGraphTitle() ?? DEFAULT_FILENAME;
   }
 
-  setCaptureMethod(method: CaptureMethod) {
-    this.captureMethod = method;
+  set captureMethod(method: CaptureMethod) {
+    this.#captureMethod = method;
     this.updateView();
+  }
+
+  get captureMethod() {
+    return this.isCaptureMethodValid(this.#captureMethod)
+      ? this.#captureMethod
+      : "once";
+  }
+
+  isCaptureMethodValid(method: CaptureMethod) {
+    return method === "action"
+      ? this.hasAction()
+      : method === "ticks"
+      ? Calc.controller.getPlayingSliders().length > 0
+      : true;
   }
 
   isCaptureWidthValid() {
@@ -208,9 +227,23 @@ export default class Controller {
     this.updateView();
   }
 
+  setTickTimeStepLatex(value: string) {
+    this.tickTimeStepLatex = value;
+    this.updateView();
+  }
+
+  getTickTimeStepNumber() {
+    return EvaluateSingleExpression(this.tickTimeStepLatex);
+  }
+
+  isTickTimeStepValid() {
+    const ts = this.getTickTimeStepNumber();
+    return !isNaN(ts) && ts > 0;
+  }
+
   getMatchingSlider() {
     const regex = new RegExp(
-      `^(\\?\s)*${escapeRegex(this.sliderSettings.variable)}(\\?\s)*=`
+      `^(\\\\?\\s)*${escapeRegex(this.sliderSettings.variable)}(\\\\?\\s)*=`
     );
     return Calc.getState().expressions.list.find(
       (e) =>
@@ -228,11 +261,13 @@ export default class Controller {
     }
   }
 
+  getTickCountNumber() {
+    return EvaluateSingleExpression(this.tickCountLatex);
+  }
+
   isTickCountValid() {
-    return (
-      isValidNumber(this.tickCountLatex) &&
-      EvaluateSingleExpression(this.tickCountLatex) > 0
-    );
+    const tc = this.getTickCountNumber();
+    return Number.isInteger(tc) && tc > 0;
   }
 
   async capture() {
@@ -243,17 +278,24 @@ export default class Controller {
     if (!this.isCaptureWidthValid() || !this.isCaptureHeightValid()) {
       return false;
     }
-    if (this.captureMethod === "once") {
-      return true;
-    } else if (this.captureMethod === "slider") {
-      return (
-        this.isSliderSettingValid("variable") &&
-        this.isSliderSettingValid("minLatex") &&
-        this.isSliderSettingValid("maxLatex") &&
-        this.isSliderSettingValid("stepLatex")
-      );
-    } else if (this.captureMethod === "action") {
-      return this.isTickCountValid();
+    switch (this.captureMethod) {
+      case "once":
+        return true;
+      case "slider":
+        return (
+          this.isSliderSettingValid("variable") &&
+          this.isSliderSettingValid("minLatex") &&
+          this.isSliderSettingValid("maxLatex") &&
+          this.isSliderSettingValid("stepLatex")
+        );
+      case "action":
+        return this.isTickCountValid();
+      case "ticks":
+        return this.isTickCountValid() && this.isTickTimeStepValid();
+      default: {
+        const exhaustiveCheck: never = this.captureMethod;
+        return exhaustiveCheck;
+      }
     }
   }
 
@@ -299,6 +341,7 @@ export default class Controller {
   addToPreviewIndex(dx: number) {
     if (this.frames.length > 0) {
       this.previewIndex += dx;
+      this.previewIndex += this.frames.length;
       this.previewIndex %= this.frames.length;
     } else {
       this.previewIndex = 0;
@@ -365,6 +408,17 @@ export default class Controller {
     if (this.frames.length <= 1 && this.isPlayingPreview) {
       this.togglePlayingPreview();
     }
+    this.updateView();
+  }
+
+  pushFrame(frame: string) {
+    if (
+      !this.isPlayingPreview &&
+      this.previewIndex === this.frames.length - 1
+    ) {
+      this.previewIndex++;
+    }
+    this.frames.push(frame);
     this.updateView();
   }
 
